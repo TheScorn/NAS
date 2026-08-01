@@ -1,0 +1,2 @@
+/usr/bin/ar qc libNAS_handler.a CMakeFiles/NAS_handler.dir/NAS_handler.c.o
+/usr/bin/ranlib libNAS_handler.a

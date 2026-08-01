@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/NAS.out.dir/NAS.c.o -o NAS.out  libNAS_argument_handler.a libNAS_handler.a 
