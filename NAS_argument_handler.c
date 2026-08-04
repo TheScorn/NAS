@@ -63,6 +63,7 @@ int handle_arguments(int argc, char** argv, struct input_args_struct* args) {
         }
     }
 
+    return 0;
 
 
 }

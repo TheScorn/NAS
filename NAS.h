@@ -1,5 +1,5 @@
 #define NAS_VERSION_MAJOR 0
-#define NAS_VERSION_MINOR 1
+#define NAS_VERSION_MINOR 2
 
 #include <stdint.h>
 #include <stdbool.h>
