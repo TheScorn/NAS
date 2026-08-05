@@ -1,0 +1,2 @@
+/usr/bin/ar qc libdb_interface.a CMakeFiles/db_interface.dir/db_interface.c.o
+/usr/bin/ranlib libdb_interface.a

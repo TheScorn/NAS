@@ -94,6 +94,8 @@ NAS.out: CMakeFiles/NAS.out.dir/NAS.c.o
 NAS.out: CMakeFiles/NAS.out.dir/build.make
 NAS.out: libNAS_argument_handler.a
 NAS.out: libNAS_handler.a
+NAS.out: libdb_interface.a
+NAS.out: libsqlite.a
 NAS.out: CMakeFiles/NAS.out.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking C executable NAS.out"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/NAS.out.dir/link.txt --verbose=$(VERBOSE)

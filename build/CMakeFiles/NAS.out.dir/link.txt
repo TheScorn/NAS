@@ -1,1 +1,1 @@
-/usr/bin/cc CMakeFiles/NAS.out.dir/NAS.c.o -o NAS.out  libNAS_argument_handler.a libNAS_handler.a 
+/usr/bin/cc -g CMakeFiles/NAS.out.dir/NAS.c.o -o NAS.out  libNAS_argument_handler.a libNAS_handler.a libdb_interface.a libsqlite.a 

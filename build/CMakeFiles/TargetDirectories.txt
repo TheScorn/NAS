@@ -1,5 +1,7 @@
 /home/thescorn/science/mine/home_server/NAS/build/CMakeFiles/NAS.out.dir
 /home/thescorn/science/mine/home_server/NAS/build/CMakeFiles/NAS_handler.dir
 /home/thescorn/science/mine/home_server/NAS/build/CMakeFiles/NAS_argument_handler.dir
+/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles/db_interface.dir
+/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles/sqlite.dir
 /home/thescorn/science/mine/home_server/NAS/build/CMakeFiles/edit_cache.dir
 /home/thescorn/science/mine/home_server/NAS/build/CMakeFiles/rebuild_cache.dir

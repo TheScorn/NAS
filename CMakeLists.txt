@@ -1,7 +1,7 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-project(NAS VERSION 0.2)
+project(NAS VERSION 0.4)
 
 configure_file(NAS.h.in ${PROJECT_SOURCE_DIR}/NAS.h)
 
@@ -14,6 +14,13 @@ set_target_properties(NAS_handler PROPERTIES PUBLIC_HEADER NAS)
 add_library(NAS_argument_handler NAS_argument_handler.c)
 set_target_properties(NAS_argument_handler PROPERTIES PUBLIC_HEADER NAS)
 
+add_library(db_interface db_interface.c)
+set_target_properties(db_interface PROPERTIES PUBLIC_HEADER NAS)
+
+add_library(sqlite STATIC sqlite3.c)
+set_target_properties(sqlite PROPERTIES PUBLIC_HEADER sqlite3)
+set_target_properties(sqlite PROPERTIES LINKER_LANGUAGE C)
+
 target_include_directories(NAS.out PUBLIC ${PROJECT_BINARY_DIR})
 
-target_link_libraries(NAS.out PUBLIC NAS_argument_handler NAS_handler)
+target_link_libraries(NAS.out PUBLIC NAS_argument_handler NAS_handler db_interface sqlite)

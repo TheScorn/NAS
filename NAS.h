@@ -1,5 +1,5 @@
 #define NAS_VERSION_MAJOR 0
-#define NAS_VERSION_MINOR 2
+#define NAS_VERSION_MINOR 4
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -19,6 +19,13 @@ struct handle_args_struct {
     bool verbose_init;
 };
 
+struct user_info_struct {
+    char* username;
+    char* password;
+    int flags;
+};
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,10 +40,15 @@ int verify_int(char* int_str);
 
 void* NAS_handle(void* arg);
 
+int test_con();
+
+int authenticate(char* username, char* password);
+
 #define VERBOSE_INIT_DEFAULT false
 #define VERBOSE_INPUT_DEFAULT false
 #define DEFAULT_PORT 54004
 #define DEFAULT_BUFFER_SIZE 104857600
 #define HELP_MESSAGE "Help message placeholder\n"
+#define STORAGE_PATH "/home/thescorn/science/mine/home_server/NAS/Storage/"
 
 #endif

@@ -6,5 +6,5 @@ C_DEFINES =
 
 C_INCLUDES = -I/home/thescorn/science/mine/home_server/NAS/build
 
-C_FLAGS = 
+C_FLAGS = -g
 

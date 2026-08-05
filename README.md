@@ -26,5 +26,17 @@ GET /path flags(int) login:{login} password:{password}
 
 PUT /path flags(int) login:{login} password:{password}
 
+DELETE /path login:{login} password:{password}
+
 TEST
 Odpowiedź ACK
+
+
+Każdy uzytkownik ma wpisane w bazie swoje dane oraz posiada swój folder
+admin powinien móc przeglądać wszystkie foldery
+
+Przesyłanie pliku będzie dwustopniowe
+Początkowo wysyłane będą metadane w json, w nich: nazwa, rozszerzenie, długość rozszerzenia, wielkość pliku, czas ostatniej modyfikacji
+
+Póki co zakładamy odmowę ścieżek zawierających ..
+Nie chcemy wychodzenia poza folder

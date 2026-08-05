@@ -155,6 +155,32 @@ NAS_argument_handler/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_argument_handler.dir/build.make CMakeFiles/NAS_argument_handler.dir/build
 .PHONY : NAS_argument_handler/fast
 
+#=============================================================================
+# Target rules for targets named db_interface
+
+# Build rule for target.
+db_interface: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 db_interface
+.PHONY : db_interface
+
+# fast build rule for target.
+db_interface/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/db_interface.dir/build.make CMakeFiles/db_interface.dir/build
+.PHONY : db_interface/fast
+
+#=============================================================================
+# Target rules for targets named sqlite
+
+# Build rule for target.
+sqlite: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 sqlite
+.PHONY : sqlite
+
+# fast build rule for target.
+sqlite/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sqlite.dir/build.make CMakeFiles/sqlite.dir/build
+.PHONY : sqlite/fast
+
 NAS.o: NAS.c.o
 .PHONY : NAS.o
 
@@ -227,6 +253,54 @@ NAS_handler.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_handler.dir/build.make CMakeFiles/NAS_handler.dir/NAS_handler.c.s
 .PHONY : NAS_handler.c.s
 
+db_interface.o: db_interface.c.o
+.PHONY : db_interface.o
+
+# target to build an object file
+db_interface.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/db_interface.dir/build.make CMakeFiles/db_interface.dir/db_interface.c.o
+.PHONY : db_interface.c.o
+
+db_interface.i: db_interface.c.i
+.PHONY : db_interface.i
+
+# target to preprocess a source file
+db_interface.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/db_interface.dir/build.make CMakeFiles/db_interface.dir/db_interface.c.i
+.PHONY : db_interface.c.i
+
+db_interface.s: db_interface.c.s
+.PHONY : db_interface.s
+
+# target to generate assembly for a file
+db_interface.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/db_interface.dir/build.make CMakeFiles/db_interface.dir/db_interface.c.s
+.PHONY : db_interface.c.s
+
+sqlite3.o: sqlite3.c.o
+.PHONY : sqlite3.o
+
+# target to build an object file
+sqlite3.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sqlite.dir/build.make CMakeFiles/sqlite.dir/sqlite3.c.o
+.PHONY : sqlite3.c.o
+
+sqlite3.i: sqlite3.c.i
+.PHONY : sqlite3.i
+
+# target to preprocess a source file
+sqlite3.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sqlite.dir/build.make CMakeFiles/sqlite.dir/sqlite3.c.i
+.PHONY : sqlite3.c.i
+
+sqlite3.s: sqlite3.c.s
+.PHONY : sqlite3.s
+
+# target to generate assembly for a file
+sqlite3.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sqlite.dir/build.make CMakeFiles/sqlite.dir/sqlite3.c.s
+.PHONY : sqlite3.c.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -238,6 +312,8 @@ help:
 	@echo "... NAS.out"
 	@echo "... NAS_argument_handler"
 	@echo "... NAS_handler"
+	@echo "... db_interface"
+	@echo "... sqlite"
 	@echo "... NAS.o"
 	@echo "... NAS.i"
 	@echo "... NAS.s"
@@ -247,6 +323,12 @@ help:
 	@echo "... NAS_handler.o"
 	@echo "... NAS_handler.i"
 	@echo "... NAS_handler.s"
+	@echo "... db_interface.o"
+	@echo "... db_interface.i"
+	@echo "... db_interface.s"
+	@echo "... sqlite3.o"
+	@echo "... sqlite3.i"
+	@echo "... sqlite3.s"
 .PHONY : help
 
 

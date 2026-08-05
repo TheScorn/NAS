@@ -49,7 +49,14 @@ int main(int argc, char **argv) {
         printf("Version: %d.%d\n", NAS_VERSION_MAJOR, NAS_VERSION_MINOR);
     }
 
-
+    int test_con_status = test_con();
+    if(test_con_status == -1) {
+        fprintf(stderr, "No sqlite database found\n");
+        return -6;
+    }
+    if(input_args.verbose_init) {
+        printf("Db connection successful\n");
+    }
 
     //potrzebna będzie baza danych użytkowników bo w każdym requeście przychodzi login i hasło
     //(szyfrowane ale to na później)
