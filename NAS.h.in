@@ -49,6 +49,6 @@ int authenticate(char* username, char* password);
 #define DEFAULT_PORT 54004
 #define DEFAULT_BUFFER_SIZE 104857600
 #define HELP_MESSAGE "Help message placeholder\n"
-#define STORAGE_PATH "/home/thescorn/science/mine/home_server/NAS/Storage/"
+#define STORAGE_PATH "/home/thescorn/science/mine/home_server/NAS/Storage"
 
 #endif

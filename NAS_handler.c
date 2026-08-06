@@ -54,10 +54,10 @@ void* NAS_handle(void* arg) {
         buffer[used] = '\0';
 
         //zakładamy że kolejne komendy z recv są dzielone prze \n
-        char* newline;
+        char* end;
         
-        while((newline = strchr(buffer, '\n')) != NULL) {
-            *newline = '\0'; //ograniczamy gotową komendę
+        while((end = strstr(buffer, "END\n")) != NULL) {
+            *end = '\0'; //ograniczamy gotową komendę
             
             //wewnątrz tego powinna być cała logika procesowania requestów
             char request_type = 0;
@@ -67,11 +67,22 @@ void* NAS_handle(void* arg) {
                 request_type = 1;
             }
 
-
+            //czy typ 2
+            if(strncasecmp(buffer, "GET ", 4) == 0) {
+                request_type = 2;
+            }
             
+            if(strncasecmp(buffer, "PUT ", 4) == 0) {
+                request_type = 3;
+            }
+
             //czy typ 4
             if(strncasecmp(buffer, "TEST", 4) == 0) {
                 request_type = 4;
+            }
+
+            if(strncasecmp(buffer, "DELETE ", 7) == 0) {
+                request_type = 5;
             }
 
 
@@ -109,7 +120,7 @@ void* NAS_handle(void* arg) {
                         total += n;
                     }
                     free(temp_buffer);
-                    consume_request(buffer, &used, newline);
+                    consume_request(buffer, &used, end);
                     continue;
                 }
 
@@ -150,7 +161,7 @@ void* NAS_handle(void* arg) {
                     return NULL;
                 }
                 else if(auth_status == -4 || auth_status == -5) {
-                    char response[] = "ERROR Incorrect credentials";
+                    char response[] = "ERROR Incorrect credentialsEND\n";
                     size_t response_len = strlen(response);
                     size_t total = 0;
                     while(total < response_len) {
@@ -165,7 +176,7 @@ void* NAS_handle(void* arg) {
                         total += n;
                     }
 
-                    consume_request(buffer, &used, newline);
+                    consume_request(buffer, &used, end);
                     continue;
                 }
                 else if(auth_status == 1) {
@@ -176,10 +187,106 @@ void* NAS_handle(void* arg) {
                 if(elevated) {
                     //uprawnienia admina
                     //TODO
-                    close(client_fd);
-                    free(buffer);
+                    char* path_buffer = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
+                    snprintf(path_buffer, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s%s", STORAGE_PATH, path);
+
+                    char* resolved = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
+
+                    if(realpath(path_buffer, resolved) == NULL) {
+                        free(path_buffer);
+                        free(resolved);
+                        free(temp_buffer);
+
+                        char response[] = "ERROR No such file or directoryEND\n";
+                        size_t response_len = strlen(response);
+                        size_t total = 0;
+                        while(total < response_len) {
+                            ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                            if(n <= 0) {
+                                fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                                close(client_fd);
+                                free(buffer);
+                                return NULL;
+                            }
+                            total += n;
+                        }
+
+                        consume_request(buffer, &used, end);
+                        continue;
+
+                    }
+
+                    free(path_buffer);
+
+                    char* check = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
+                    snprintf(check, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s", STORAGE_PATH);
+
+
                     free(temp_buffer);
-                    return NULL;
+                    if(strncasecmp(resolved, check, strlen(check)) != 0) {
+                        fprintf(stderr, "Attempting to access forbidden resource!\n");
+                        free(check);
+                        free(resolved);
+
+                        char response[] = "ERROR Attempting to access forbidden resourceEND\n";
+                        size_t response_len = strlen(response);
+                        size_t total = 0;
+                        while(total < response_len) {
+                            ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                            if(n <= 0) {
+                                fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                                close(client_fd);
+                                free(buffer);
+                                return NULL;
+                            }
+                            total += n;
+                        }
+
+                        consume_request(buffer, &used, end);
+                        continue;
+
+                    }
+
+                    free(check);
+
+                    char* ls_command = (char*)malloc(strlen(resolved) + 4);
+                    snprintf(ls_command, strlen(resolved) + 4, "ls %s", resolved);
+                    free(resolved);
+
+                    FILE* fp = popen(ls_command, "r");
+                    if(fp == NULL) {
+                        fprintf(stderr, "Error occured in popen: %s\n", strerror(errno));
+                        free(ls_command);
+                        free(buffer);
+                        close(client_fd);
+                        return NULL;
+                    }
+
+                    char response[4096] = "";
+                    char line[256];
+
+                    while(fgets(line, sizeof(line), fp) != NULL) {
+                        strncat(response, line, sizeof(response) - strlen(response) - 1);
+                    }
+
+                    strncat(response, "END\n", 5);
+
+                    free(ls_command);
+                    pclose(fp);
+
+                    size_t response_len = strlen(response);
+                    size_t total = 0;
+                    while(total < response_len) {
+                        ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                        if(n <= 0) {
+                            fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                            close(client_fd);
+                            free(buffer);
+                        }
+                        total += n;
+                    }
+                    
+                    
                 }
                 else {
                     
@@ -192,7 +299,7 @@ void* NAS_handle(void* arg) {
                     //char* path_buff = (char*)malloc(sizeof(char) * (strlen(STORAGE_PATH) + strlen(username) + strlen(path) + 2));
                     char* path_buffer = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
                     
-                    snprintf(path_buffer ,sizeof(char) * DEFAULT_BUFFER_SIZE , "%s%s%s", STORAGE_PATH, username, path);
+                    snprintf(path_buffer ,sizeof(char) * DEFAULT_BUFFER_SIZE , "%s/%s%s", STORAGE_PATH, username, path);
                     
                     
                     char* resolved = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
@@ -204,21 +311,21 @@ void* NAS_handle(void* arg) {
                         free(resolved);
                         free(temp_buffer);
 
-                        char response[] = "ERROR No such file or directory";
+                        char response[] = "ERROR No such file or directoryEND\n";
                         size_t response_len = strlen(response);
                         size_t total = 0;
                         while(total < response_len) {
                             ssize_t n = send(client_fd, response + total, response_len - total, 0);
                             if(n <= 0) {
                                 fprintf(stderr, "0 bytes sent. Closing connection.\n");
-
+                                free(buffer);
                                 close(client_fd);
                                 return NULL;
                             }
                             total += n;
                         }
 
-                        consume_request(buffer, &used, newline);
+                        consume_request(buffer, &used, end);
                         continue;   
 
                     }
@@ -227,7 +334,7 @@ void* NAS_handle(void* arg) {
                     
                     //sprawdzanie czy resolved zaczyna się od /Storage/user
                     char* check = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
-                    snprintf(check, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s%s", STORAGE_PATH, username);
+                    snprintf(check, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s/%s", STORAGE_PATH, username);
                     free(temp_buffer);
                     
                     if(strncasecmp(resolved, check, strlen(check)) != 0) {
@@ -235,7 +342,7 @@ void* NAS_handle(void* arg) {
                         free(check);
                         free(resolved);
 
-                        char response[] = "ERROR Attempting to acces forbidden resource";
+                        char response[] = "ERROR Attempting to acces forbidden resourceEND\n";
                         size_t response_len = strlen(response);
                         size_t total = 0;
                         while(total < response_len) {
@@ -243,12 +350,13 @@ void* NAS_handle(void* arg) {
                             if(n <= 0) {
                                 fprintf(stderr, "0 bytes sent. Closing connection.\n");
                                 close(client_fd);
+                                free(buffer);
                                 return NULL;
                             }
                             total += n;
                         }
 
-                        consume_request(buffer, &used, newline);
+                        consume_request(buffer, &used, end);
                         continue;
 
                     }
@@ -264,6 +372,7 @@ void* NAS_handle(void* arg) {
                     if(fp == NULL) {
                         fprintf(stderr, "Error occured in popen: %s\n", strerror(errno));
                         free(ls_command);
+                        free(buffer);
                         close(client_fd);
                         return NULL;
                     }
@@ -275,6 +384,8 @@ void* NAS_handle(void* arg) {
                         strncat(response, line, sizeof(response) - strlen(response) - 1);
                     }
                     
+                    strncat(response, "END\n", 5);
+
                     free(ls_command);
                     pclose(fp);
 
@@ -342,7 +453,7 @@ void* NAS_handle(void* arg) {
 
             //problem jest taki że to poinno się wykonać po każdej sprawdzonej komendzie a chcemy zrobić break
             //możnaby to wrzucić w funkcję i odpalać przed breakiem
-            consume_request(buffer, &used, newline);
+            consume_request(buffer, &used, end);
         }
     }
 
@@ -353,8 +464,8 @@ void* NAS_handle(void* arg) {
     return NULL;
 }
 
-void consume_request(char* buffer, size_t* used, char* newline) {
-    size_t consumed = (newline - buffer) + 1;
+void consume_request(char* buffer, size_t* used, char* end) {
+    size_t consumed = (end - buffer) + 4;
     *used -= consumed;
     memmove(buffer, buffer + consumed, *used);
     buffer[*used] = '\0';

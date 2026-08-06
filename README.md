@@ -40,3 +40,7 @@ Początkowo wysyłane będą metadane w json, w nich: nazwa, rozszerzenie, dług
 
 Póki co zakładamy odmowę ścieżek zawierających ..
 Nie chcemy wychodzenia poza folder
+
+
+Zmiana delimitera na customowy tak żeby można było łatwo przesyłać pliki
+"END\n"
