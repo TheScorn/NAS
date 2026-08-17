@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <regex.h>
 #include <errno.h>
+#include <dirent.h>
+
 
 void* NAS_handle(void* arg) {
 
@@ -51,7 +53,7 @@ void* NAS_handle(void* arg) {
 
         *(prefix + DEFAULT_PREFIX_SIZE) = '\0';
 
-        printf("prefix: %s\n", prefix);
+        //printf("prefix: %s\n", prefix);
 
         unsigned long long prefix_numerical;
         int conversion_status = determine_length(&prefix_numerical, prefix);
@@ -108,7 +110,7 @@ void* NAS_handle(void* arg) {
         //dodajemy null terminator do wiadomości
         *(buffer + prefix_numerical) = '\0';
 
-        printf("buffer: %s\n", buffer);
+        //printf("buffer: %s\n", buffer);
         
 
         if(strncasecmp(buffer, "LIST ", 5) == 0) {
@@ -141,7 +143,7 @@ void* NAS_handle(void* arg) {
 
         //LIST handle
         if(request_type == LIST) {
-            printf("LIST handle\n");
+
             regex_t regex;
             regcomp(&regex, "^LIST ([^ ]+) login:([^ ]+) password:([^ \r\n]+)\r?$", REG_EXTENDED);
             regmatch_t matches[4];
@@ -241,7 +243,6 @@ void* NAS_handle(void* arg) {
                 snprintf(path_buffer, sizeof(char) * 4096, "%s/%s%s", STORAGE_PATH, username, path);
             } 
             
-            printf("path buffer:%s\n", path_buffer);
 
             char* resolved = (char*)malloc(sizeof(char) * 4096);
 
@@ -285,7 +286,7 @@ void* NAS_handle(void* arg) {
                 snprintf(check, sizeof(char) * 4096, "%s/%s", STORAGE_PATH, username);
             }
             
-            printf("path_buffer freed, check:%s\n", check);
+            
 
 
             free(temp_buffer);
@@ -315,43 +316,110 @@ void* NAS_handle(void* arg) {
 
             free(check);
 
-            char* ls_command = (char*)malloc(strlen(resolved) + 4);
-            snprintf(ls_command, strlen(resolved) + 4, "ls %s", resolved);
-            free(resolved);
-
-            printf("check freed, resolved freed. ls_command:%s\n", ls_command);
-
-            FILE* fp = popen(ls_command, "r");
-            if(fp == NULL) {
-                fprintf(stderr, "Error occured in popen: %s\n", strerror(errno));
-                free(ls_command);
-                free(buffer);
-                close(client_fd);
-                return NULL;
-            }
-
-            char response_ls[4096] = "";
-            char line[256];
-
-            while(fgets(line, sizeof(line), fp) != NULL) {
-                strncat(response_ls, line, sizeof(response_ls) - strlen(response_ls) - 1);
-            }
-
-
+            DIR* dir = opendir(resolved);
+            bool file = false;
             
+            if(dir == NULL) {
+                if(errno == ENOTDIR) {
+                    //ścieżka wskazuje do pliku
+                    file = true;
+                }
+                else {
+                    fprintf(stderr, "Error occured in opendir: %s", strerror(errno));
+                    close(client_fd);
+                    free(resolved);
+                    return NULL;
+                }
+            }
 
-            free(ls_command);
-            pclose(fp);
+            //0 file, 1 dir, 2 symlink
+            //jeśli odpowiedzią jest pojedyńczy plik to wysyłamy po prostu tą jedną nazwę
+            //też korzystamy ze schematu [type][namelength][name] dla stałości
+            //type {0, 1, 2}, namelength 4 bytes in hex, name
+            char* raw_response;
+            if(file) {
+                //bierzemy całą ścieżkę
+                //musimy jakoś znaleźć ostatni /
+                int last_dash = last_occurence(resolved, '/');
+                resolved = resolved + last_dash + 1;
 
-            printf("ls_command freed, fp closed. response:%s\n", response_ls);
+                size_t name_length = strlen(resolved);
 
-            size_t response_ls_len = strlen(response_ls);
+                raw_response = (char*)malloc(sizeof(char) * (1 + 4 + name_length + 1));
+                snprintf(raw_response, 1 + 4 + name_length + 1, "0%04zX%s", name_length, resolved);
+                free(resolved);
+                resolved = NULL;
 
-            char* response = (char*)malloc(sizeof(char)*(response_ls_len + 17));
-            size_t response_len = response_ls_len + 16;
+                //reszta potem bo prefix można dodać już później
+            }
+            else {
+                struct dirent *entry;
 
-            snprintf(response, response_len + 1, "%016zX%s", response_ls_len, response_ls);
-            printf("prefixed response:%s\nstrlen respnse:%ld\n", response, response_len);
+                size_t name_length;
+                char type;
+                raw_response = (char*)malloc(sizeof(char));
+                *raw_response = '\0';
+
+                char* temp;
+               
+                //śmieciowy alloc żeby móc robić realloc w pętli
+                char* element;
+
+                while((entry = readdir(dir)) != NULL) {
+                    
+                    //pomijamy . i ..
+                    if(strcasecmp(entry->d_name, ".") == 0 || strcasecmp(entry->d_name, "..") == 0) {
+                        continue;
+                    }
+                    
+                    //odczytujemy każdy element i dopisujemy coraz więcej do raw response
+                    //[type][namelength][name]  
+                    if(entry->d_type == 8) {
+                        type = '0';
+                    }
+                    else if(entry->d_type == 4) {
+                        type = '1';
+                    }
+                    else if(entry->d_type == 10) {
+                        type = '2';
+                    }
+                    else if(entry->d_type == 0) {
+                        //nieznany plik. trzeba użyć lstat
+                        //może na potem bo potrzeba ścieżki
+                    }
+
+
+                    name_length = strlen(entry->d_name);
+
+                    element = (char*)malloc(sizeof(char) * (1 + 4 + name_length + 1));
+                    snprintf(element, 1 + 4 + name_length + 1, "%c%04zX%s", type, name_length, entry->d_name);
+                    
+                    //raw_response = (char*)realloc(raw_response, sizeof(char) * (strlen(raw_response)));
+                    
+                    temp = (char*)malloc(sizeof(char) * (strlen(raw_response) + strlen(element) + 1));
+                    
+
+                    snprintf(temp, strlen(raw_response) + strlen(element) + 1, "%s%s", raw_response, element);
+                    raw_response = (char*)realloc(raw_response, sizeof(char) * (strlen(temp) + 1));
+                    snprintf(raw_response, strlen(temp) + 1, "%s", temp);
+
+                    free(temp);
+                    free(element);
+
+                }
+                free(resolved);
+                resolved = NULL;
+                closedir(dir);
+            }
+            
+            //mamy raw_response gotowe
+            size_t raw_response_len = strlen(raw_response);
+            char* response = (char*)malloc(sizeof(char) * (raw_response_len + 16 + 1));
+            size_t response_len = raw_response_len + 16;
+
+            snprintf(response, response_len + 1, "%016zX%s", raw_response_len, raw_response);
+            
+            free(raw_response);
 
             size_t total = 0;
             while(total < response_len) {
@@ -365,9 +433,8 @@ void* NAS_handle(void* arg) {
                 }
                 total += n;
             }
-            
+
             free(response);
-                
         }
 
         //GET handle

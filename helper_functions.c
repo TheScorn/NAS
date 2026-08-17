@@ -46,3 +46,29 @@ char* add_prefix(char* message) {
     return prefixed;
 }
 
+
+/**
+ * @brief Function for finding last occurence of a char in string
+ * 
+ * 
+ * @param str null terminated string
+ * 
+ * @param chr character to be found
+ * 
+ * @returns index of a last occurence of a string. -1 If no match found
+ */
+int last_occurence(char* str, char chr) {
+    
+    int last_occur = -1;
+    //string strlen 6 
+    for(int idx = 0; idx < strlen(str); idx++) {
+        if(*(str + idx) == chr) {
+            last_occur = idx;
+
+        }
+
+    }
+
+    return last_occur;
+
+}

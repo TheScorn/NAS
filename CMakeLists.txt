@@ -1,7 +1,7 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-project(NAS VERSION 0.4)
+project(NAS VERSION 0.5)
 
 configure_file(NAS.h.in ${PROJECT_SOURCE_DIR}/NAS.h)
 

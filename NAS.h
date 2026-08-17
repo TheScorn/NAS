@@ -1,5 +1,5 @@
 #define NAS_VERSION_MAJOR 0
-#define NAS_VERSION_MINOR 4
+#define NAS_VERSION_MINOR 5
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -25,7 +25,7 @@ struct user_info_struct {
     int flags;
 };
 
-char* add_prefix(char* message);
+
 
 enum Request_type_en {
     UNKNOWN, LIST, GET, PUT, DELETE, TEST_CON, TEST_LOGIN
@@ -50,6 +50,10 @@ int test_con();
 int authenticate(char* username, char* password);
 
 int determine_length(unsigned long long* result ,char* prefix);
+
+char* add_prefix(char* message);
+
+int last_occurence(char* str, char chr);
 
 #define VERBOSE_INIT_DEFAULT false
 #define VERBOSE_INPUT_DEFAULT false
