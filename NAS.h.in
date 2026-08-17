@@ -25,6 +25,11 @@ struct user_info_struct {
     int flags;
 };
 
+char* add_prefix(char* message);
+
+enum Request_type_en {
+    UNKNOWN, LIST, GET, PUT, DELETE, TEST_CON, TEST_LOGIN
+};
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,10 +49,14 @@ int test_con();
 
 int authenticate(char* username, char* password);
 
+int determine_length(unsigned long long* result ,char* prefix);
+
 #define VERBOSE_INIT_DEFAULT false
 #define VERBOSE_INPUT_DEFAULT false
 #define DEFAULT_PORT 54004
 #define DEFAULT_BUFFER_SIZE 104857600
+#define DEFAULT_PATH_BUFFER_SIZE 2048
+#define DEFAULT_PREFIX_SIZE 16
 #define HELP_MESSAGE "Help message placeholder\n"
 #define STORAGE_PATH "/home/thescorn/science/mine/home_server/NAS/Storage"
 

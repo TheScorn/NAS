@@ -9,8 +9,6 @@
 #include <regex.h>
 #include <errno.h>
 
-void consume_request(char* buffer, size_t* used, char* newline);
-
 void* NAS_handle(void* arg) {
 
     struct handle_args_struct* args = arg;
@@ -20,275 +18,283 @@ void* NAS_handle(void* arg) {
     free(args);
 
     bool run = true;
-    char* buffer = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
-    size_t used = 0;
-    //wszystko odtąd trzeba wsadzić w while i oddzielać przychodzące wiadomości
-    
+    char* prefix;
+    size_t received;
+
+    enum Request_type_en request_type = UNKNOWN;
+
     while(run) {
+        //Prefix determination
+        //odbieramy póki nie mamy 16 znaków
+        prefix = (char*)malloc(sizeof(char) * (DEFAULT_PREFIX_SIZE + 1));
+        received = 0;
+        while(received < DEFAULT_PREFIX_SIZE) {
+            ssize_t n = recv(client_fd, prefix + received, DEFAULT_PREFIX_SIZE - received, 0);
 
-        //Typy requestów
-        //0 NONE - nierozpoznany request
-        //1 lista plików
-        //2 get file
-        //3 put file
-        //4 Test con
-        //5 delete file
+            if(n == 0) {
+                //klient zamknął połączenie
+                free(prefix);
+                close(client_fd);
+                return NULL;
+            }
+            else if(n < 0) {
+                fprintf(stderr, "Recv error occured in prefix determination!\n");
+                free(prefix);
+                close(client_fd);
+                return NULL;
+            }
 
-        //jak zrobić listowanie plików jeśli uznamy że foldery są legalne.
+            received += n;
 
-        
-        
-        ssize_t bytes_received = recv(client_fd, buffer + used, DEFAULT_BUFFER_SIZE - used - 1, 0);
-        
-        if(bytes_received == 0) {
-            //client closed the connection
-            break;
+
         }
-        else if(bytes_received < 0) {
-            fprintf(stderr, "Recv error");
-            break;
+
+        *(prefix + DEFAULT_PREFIX_SIZE) = '\0';
+
+        printf("prefix: %s\n", prefix);
+
+        unsigned long long prefix_numerical;
+        int conversion_status = determine_length(&prefix_numerical, prefix);
+        free(prefix);
+        //tu już sam prefix nie jest potrzebny
+        if(conversion_status != 0) {
+            //error w konwersji prefixu na wartość numeryczną
+            close(client_fd);
+            return NULL;
+        }
+
+
+        //sprawdzanie czy numerical dał 0
+        //to oznacza że przychodzi tylko prefix i klient coś kombinuje 
+        //należy raczej zerwać połączenie
+        if(prefix_numerical <= 0) {
+            fprintf(stderr, "0 bytes stated in prefix. Closing connection.\n");
+            close(client_fd);
+            return NULL;
+        }
+        else if(prefix_numerical > SIZE_MAX) {
+            fprintf(stderr, "Size of expected message larger than system size_t. Closing connection.\n");
+            close(client_fd);
+            return NULL;
+        }
+
+        //tworzymy bufor wielkość spodziewanej wiadomości
+        //+1 char na null terminator
+        char* buffer = (char*)malloc(prefix_numerical + (1 * sizeof(char)));
+
+
+
+        received = 0;
+        while(received < prefix_numerical) {
+            ssize_t n = recv(client_fd, buffer + received, prefix_numerical - received, 0);
+
+
+            if(n == 0) {
+                //client closed con
+                free(buffer);
+                close(client_fd);
+                return NULL;
+            }
+            else if(n < 0) {
+                fprintf(stderr, "Recv error in message recv!\n");
+                free(buffer);
+                close(client_fd);
+                return NULL;
+            }
+
+            received += n;
+
+        }
+        //dodajemy null terminator do wiadomości
+        *(buffer + prefix_numerical) = '\0';
+
+        printf("buffer: %s\n", buffer);
+        
+
+        if(strncasecmp(buffer, "LIST ", 5) == 0) {
+            request_type = LIST;
+        }
+
+        //czy typ 2
+        else if(strncasecmp(buffer, "GET ", 4) == 0) {
+            request_type = GET;
         }
         
+        else if(strncasecmp(buffer, "PUT ", 4) == 0) {
+            request_type = PUT;
+        }
+
+        if(strncasecmp(buffer, "DELETE ", 7) == 0) {
+            request_type = DELETE;
+        }
+
+        else if(strncasecmp(buffer, "TEST", 4) == 0) {
+            request_type = TEST_CON;
+        }
+        else if(strncasecmp(buffer, "LOGINTEST", 9) == 0) {
+            request_type = TEST_LOGIN;
+        }
+
         
-        used += bytes_received;
-        buffer[used] = '\0';
+        //nie trzeba raczej robić żadnego consume bo robimy recv dla konkretnej ilości znaków
 
-        //zakładamy że kolejne komendy z recv są dzielone prze \n
-        char* end;
-        
-        while((end = strstr(buffer, "END\n")) != NULL) {
-            *end = '\0'; //ograniczamy gotową komendę
+
+        //LIST handle
+        if(request_type == LIST) {
+            printf("LIST handle\n");
+            regex_t regex;
+            regcomp(&regex, "^LIST ([^ ]+) login:([^ ]+) password:([^ \r\n]+)\r?$", REG_EXTENDED);
+            regmatch_t matches[4];
+            char* temp_buffer = (char*)malloc(4096 * sizeof(char));
+            memcpy(temp_buffer, buffer, prefix_numerical + 1 * sizeof(char));
+            if(regexec(&regex, temp_buffer, 4, matches, 0) != 0) {
+                char response[] = "0000000000000017ERROR Malformed request";
+                size_t response_len = strlen(response);
+                size_t total = 0;
+                while(total < response_len) {
+                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                    if(n <= 0) {
+                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                        close(client_fd);
+                        free(buffer);
+                        regfree(&regex);
+                        free(temp_buffer);
+                        return NULL;
+                    }
+                    total += n;
+                }
+                free(temp_buffer);
+                free(buffer);
+                continue;
+            }
+
+            char* path = temp_buffer + matches[1].rm_so;
+            temp_buffer[matches[1].rm_eo] = '\0';
             
-            //wewnątrz tego powinna być cała logika procesowania requestów
-            char request_type = 0;
+            char* username = temp_buffer + matches[2].rm_so;
+            temp_buffer[matches[2].rm_eo] = '\0';
 
-            //Czy typ 1
-            if(strncasecmp(buffer, "LIST ", 5) == 0) {
-                request_type = 1;
-            }
+            char* password = temp_buffer + matches[3].rm_so;
+            temp_buffer[matches[3].rm_eo] = '\0';
 
-            //czy typ 2
-            if(strncasecmp(buffer, "GET ", 4) == 0) {
-                request_type = 2;
-            }
+            regfree(&regex);
+
+            bool elevated = false;
+
+            int auth_status = authenticate(username, password);
             
-            if(strncasecmp(buffer, "PUT ", 4) == 0) {
-                request_type = 3;
+            if(auth_status == -1) {
+                fprintf(stderr, "Db could not be opened during authentication!\n");
+                close(client_fd);
+                free(temp_buffer);
+                free(buffer);
+                return NULL;
             }
-
-            //czy typ 4
-            if(strncasecmp(buffer, "TEST", 4) == 0) {
-                request_type = 4;
+            else if(auth_status == -2) {
+                fprintf(stderr, "sqlite3_prepare failed during authentication!\n");
+                close(client_fd);
+                free(buffer);
+                free(temp_buffer);
+                return NULL;
             }
-
-            if(strncasecmp(buffer, "DELETE ", 7) == 0) {
-                request_type = 5;
+            else if(auth_status == -3) {
+                fprintf(stderr, "sqlite3_step failed during authentication!\n");
+                close(client_fd);
+                free(buffer);
+                free(temp_buffer);
+                return NULL;
             }
-
-
-
-
-            /////////////////////////////////////////////////////////////////////////
-            //LIST handle
-
-            //dla zwykłego użytkownika ścieżka jest automatycznie ustawiana na
-            // /username/ 
-            //zwykły użytkownik powinien móc pracować w swoim folderze widząc tylko / jako początek jego przydzielonej pamięci
-            //w przypadku elevated ścieżka początkowa to całe Storage/
-
-            //Stąd wynika że pierwsze co trzeba to zrobić autoryzację i sprawdzić wynik
-
-            if(request_type == 1) {
-                regex_t regex;
-                regcomp(&regex, "^LIST ([^ ]+) login:([^ ]+) password:([^ \r\n]+)\r?$", REG_EXTENDED);
-                regmatch_t matches[4];
-                char* temp_buffer = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
-                memcpy(temp_buffer, buffer, sizeof(char) * DEFAULT_BUFFER_SIZE);
-                if(regexec(&regex, temp_buffer, 4, matches, 0) != 0) {
-                    char response[] = "ERROR Malformed request";
-                    size_t response_len = strlen(response);
-                    size_t total = 0;
-                    while(total < response_len) {
-                        ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                        if(n <= 0) {
-                            fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                            close(client_fd);
-                            free(buffer);
-                            regfree(&regex);
-                            free(temp_buffer);
-                            return NULL;
-                        }
-                        total += n;
+            else if(auth_status == -4 || auth_status == -5) {
+                char response[] = "000000000000001BERROR Incorrect credentials";
+                size_t response_len = strlen(response);
+                size_t total = 0;
+                while(total < response_len) {
+                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                    if(n <= 0) {
+                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                        close(client_fd);
+                        free(buffer);
+                        free(temp_buffer);
+                        return NULL;
                     }
-                    free(temp_buffer);
-                    consume_request(buffer, &used, end);
-                    continue;
+                    total += n;
                 }
-
-                char* path = temp_buffer + matches[1].rm_so;
-                temp_buffer[matches[1].rm_eo] = '\0';
-                
-                char* username = temp_buffer + matches[2].rm_so;
-                temp_buffer[matches[2].rm_eo] = '\0';
-
-                char* password = temp_buffer + matches[3].rm_so;
-                temp_buffer[matches[3].rm_eo] = '\0';
-
-                regfree(&regex);
-
-                bool elevated = false;
-
-                int auth_status = authenticate(username, password);
-                
-                if(auth_status == -1) {
-                    fprintf(stderr, "Db could not be opened during authentication!\n");
-                    close(client_fd);
-                    free(temp_buffer);
-                    free(buffer);
-                    return NULL;
-                }
-                else if(auth_status == -2) {
-                    fprintf(stderr, "sqlite3_prepare failed during authentication!\n");
-                    close(client_fd);
-                    free(buffer);
-                    free(temp_buffer);
-                    return NULL;
-                }
-                else if(auth_status == -3) {
-                    fprintf(stderr, "sqlite3_step failed during authentication!\n");
-                    close(client_fd);
-                    free(buffer);
-                    free(temp_buffer);
-                    return NULL;
-                }
-                else if(auth_status == -4 || auth_status == -5) {
-                    char response[] = "ERROR Incorrect credentialsEND\n";
-                    size_t response_len = strlen(response);
-                    size_t total = 0;
-                    while(total < response_len) {
-                        ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                        if(n <= 0) {
-                            fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                            close(client_fd);
-                            free(buffer);
-                            free(temp_buffer);
-                            return NULL;
-                        }
-                        total += n;
-                    }
-
-                    consume_request(buffer, &used, end);
-                    continue;
-                }
-                else if(auth_status == 1) {
-                    elevated = true;
-                }
-
-                //najpierw napiszemy przypadek bez elevated (potem tego schematu można użyć w każdym innym requeście)
-                
-                //uprawnienia admina
-                //TODO
-                char* path_buffer = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
-
-                if(elevated) {
-                    snprintf(path_buffer, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s%s", STORAGE_PATH, path);
-                }   
-                else {
-                    snprintf(path_buffer, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s/%s%s", STORAGE_PATH, username, path);
-                } 
-                
-
-                char* resolved = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
-
-                if(realpath(path_buffer, resolved) == NULL) {
-                    free(path_buffer);
-                    free(resolved);
-                    free(temp_buffer);
-
-                    char response[] = "ERROR No such file or directoryEND\n";
-                    size_t response_len = strlen(response);
-                    size_t total = 0;
-                    while(total < response_len) {
-                        ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                        if(n <= 0) {
-                            fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                            close(client_fd);
-                            free(buffer);
-                            return NULL;
-                        }
-                        total += n;
-                    }
-
-                    consume_request(buffer, &used, end);
-                    continue;
-
-                }
-
-                free(path_buffer);
-
-                char* check = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
-                
-                if(elevated) {
-                    snprintf(check, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s", STORAGE_PATH);
-                }
-                else {
-                    snprintf(check, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s/%s", STORAGE_PATH, username);
-                }
-                
-
 
                 free(temp_buffer);
-                if(strncasecmp(resolved, check, strlen(check)) != 0) {
-                    fprintf(stderr, "Attempting to access forbidden resource!\n");
-                    free(check);
-                    free(resolved);
+                free(buffer);
+                continue;
+            }
+            else if(auth_status == 1) {
+                elevated = true;
+            }
 
-                    char response[] = "ERROR Attempting to access forbidden resourceEND\n";
-                    size_t response_len = strlen(response);
-                    size_t total = 0;
-                    while(total < response_len) {
-                        ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                        if(n <= 0) {
-                            fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                            close(client_fd);
-                            free(buffer);
-                            return NULL;
-                        }
-                        total += n;
+            //najpierw napiszemy przypadek bez elevated (potem tego schematu można użyć w każdym innym requeście)
+            
+            //uprawnienia admina
+            //TODO
+            char* path_buffer = (char*)malloc(sizeof(char) * 4096);
+
+            if(elevated) {
+                snprintf(path_buffer, sizeof(char) * 4096, "%s%s", STORAGE_PATH, path);
+            }   
+            else {
+                snprintf(path_buffer, sizeof(char) * 4096, "%s/%s%s", STORAGE_PATH, username, path);
+            } 
+            
+            printf("path buffer:%s\n", path_buffer);
+
+            char* resolved = (char*)malloc(sizeof(char) * 4096);
+
+            
+
+            if(realpath(path_buffer, resolved) == NULL) {
+                free(path_buffer);
+                free(resolved);
+                free(temp_buffer);
+
+                char response[] = "000000000000001FERROR No such file or directory";
+                size_t response_len = strlen(response);
+                size_t total = 0;
+                while(total < response_len) {
+                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                    if(n <= 0) {
+                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                        close(client_fd);
+                        free(buffer);
+                        return NULL;
                     }
-
-                    consume_request(buffer, &used, end);
-                    continue;
-
+                    total += n;
                 }
 
-                free(check);
+                free(buffer);
+                continue;
 
-                char* ls_command = (char*)malloc(strlen(resolved) + 4);
-                snprintf(ls_command, strlen(resolved) + 4, "ls %s", resolved);
+            }
+
+
+
+            free(path_buffer);
+
+
+            char* check = (char*)malloc(sizeof(char) * 4096);
+            
+            if(elevated) {
+                snprintf(check, sizeof(char) * 4096, "%s", STORAGE_PATH);
+            }
+            else {
+                snprintf(check, sizeof(char) * 4096, "%s/%s", STORAGE_PATH, username);
+            }
+            
+            printf("path_buffer freed, check:%s\n", check);
+
+
+            free(temp_buffer);
+            if(strncasecmp(resolved, check, strlen(check)) != 0) {
+                fprintf(stderr, "Attempting to access forbidden resource!\n");
+                free(check);
                 free(resolved);
 
-                FILE* fp = popen(ls_command, "r");
-                if(fp == NULL) {
-                    fprintf(stderr, "Error occured in popen: %s\n", strerror(errno));
-                    free(ls_command);
-                    free(buffer);
-                    close(client_fd);
-                    return NULL;
-                }
-
-                char response[4096] = "";
-                char line[256];
-
-                while(fgets(line, sizeof(line), fp) != NULL) {
-                    strncat(response, line, sizeof(response) - strlen(response) - 1);
-                }
-
-                strncat(response, "END\n", 5);
-
-                free(ls_command);
-                pclose(fp);
-
+                char response[] = "000000000000002DERROR Attempting to access forbidden resource";
                 size_t response_len = strlen(response);
                 size_t total = 0;
                 while(total < response_len) {
@@ -297,269 +303,218 @@ void* NAS_handle(void* arg) {
                         fprintf(stderr, "0 bytes sent. Closing connection.\n");
                         close(client_fd);
                         free(buffer);
+                        return NULL;
                     }
                     total += n;
                 }
-                    
-                    
+
+                free(buffer);
+                continue;
+
             }
-                
-                
+
+            free(check);
+
+            char* ls_command = (char*)malloc(strlen(resolved) + 4);
+            snprintf(ls_command, strlen(resolved) + 4, "ls %s", resolved);
+            free(resolved);
+
+            printf("check freed, resolved freed. ls_command:%s\n", ls_command);
+
+            FILE* fp = popen(ls_command, "r");
+            if(fp == NULL) {
+                fprintf(stderr, "Error occured in popen: %s\n", strerror(errno));
+                free(ls_command);
+                free(buffer);
+                close(client_fd);
+                return NULL;
+            }
+
+            char response_ls[4096] = "";
+            char line[256];
+
+            while(fgets(line, sizeof(line), fp) != NULL) {
+                strncat(response_ls, line, sizeof(response_ls) - strlen(response_ls) - 1);
+            }
 
 
             
 
-            ////////////////////////////////////////////////////////////////////////
-            //GET handle
-            else if(request_type == 2) {
-                //podobnie jak w przypadku LIST
-                //robimy autoryzację i sprawdzamy czy logowanie poprawne oraz czy elevated
+            free(ls_command);
+            pclose(fp);
 
-                //tak jak w LIST ustawiamy ścieżki i sprawdzamy prawa do podanej
+            printf("ls_command freed, fp closed. response:%s\n", response_ls);
 
-                //zmiana jest dopiero w tym miejscu
-                //zczytujemy metadane
-                //sprawdzamy czy plik jest plikiem, a nie na przykład folerem
-                //(kopiowanie folderów będzie bardziej skomplikowane i na pewno nie na teraz)
-                //(będzie wymagało rekurenyjnego schodzenia coraz głębiej)
-                //zbiearamy metadane i wysyłamy  (podobno warto to ubrać w json żeby potem było prościej)
-                //po wysłaniu metadanych (czekamy na ACK???, raczej nie ma sensu.
-                // Po stronie gościa wiemy co chcemy otrzymać a osobne komunikaty są oddzielone)
-                //Otwieramy plik, wczytujemy i wysyłamy.
-                //Dla dużych plików dobrze byłoby mieć mechanizm wczytywania i wysyłania po części.
-                
-                //po otrzymaniu całego pliku i znalezeieniu END\n host zamyka plik(wysyła ACK???)
+            size_t response_ls_len = strlen(response_ls);
 
-                regex_t regex;
-                regcomp(&regexec, "^GET ([^ ]+) login:([^ ]+) password:([^ \r\n]+)\r?$", REG_EXTENDED);
-                regmatch_t matches[4];
-                char* temp_buffer = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
-                memcpy(temp_buffer, buffer, sizeof(char) * DEFAULT_BUFFER_SIZE);
-                if(regexec(&regex, temp_buffer, 4, matches, 0) != 0) {
-                    char response[] = "ERROR Malformed request";
-                    size_t response_len = strlen(response);
-                    size_t total = 0;
-                    while(total < response_len) {
-                        ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                        if(n <= 0) {
-                            fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                            close(client_fd);
-                            free(buffer);
-                            regfree(&regex);
-                            free(temp_buffer);
-                            return NULL;
-                        }
-                        total += n;
-                    }
-                    free(temp_buffer);
-                    consume_request(buffer, &used, end);
-                    continue;
-                }
+            char* response = (char*)malloc(sizeof(char)*(response_ls_len + 17));
+            size_t response_len = response_ls_len + 16;
 
-                char* path = temp_buffer + matches[1].rm_so;
-                temp_buffer[matches[1].rm_eo] = '\0';
-                
-                char* username = temp_buffer + matches[2].rm_so;
-                temp_buffer[matches[2].rm_eo] = '\0';
+            snprintf(response, response_len + 1, "%016zX%s", response_ls_len, response_ls);
+            printf("prefixed response:%s\nstrlen respnse:%ld\n", response, response_len);
 
-                char* password = temp_buffer + matches[3].rm_so;
-                temp_buffer[matches[3].rm_eo] = '\0';
-
-                regfree(&regex);
-
-                bool elevated = false;
-
-                int auth_status = authenticate(username, password);
-                
-                if(auth_status == -1) {
-                    fprintf(stderr, "Db could not be opened during authentication!\n");
-                    close(client_fd);
-                    free(temp_buffer);
-                    free(buffer);
-                    return NULL;
-                }
-                else if(auth_status == -2) {
-                    fprintf(stderr, "sqlite3_prepare failed during authentication!\n");
+            size_t total = 0;
+            while(total < response_len) {
+                ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                if(n <= 0) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
                     close(client_fd);
                     free(buffer);
-                    free(temp_buffer);
+                    free(response);
                     return NULL;
                 }
-                else if(auth_status == -3) {
-                    fprintf(stderr, "sqlite3_step failed during authentication!\n");
-                    close(client_fd);
-                    free(buffer);
-                    free(temp_buffer);
-                    return NULL;
-                }
-                else if(auth_status == -4 || auth_status == -5) {
-                    char response[] = "ERROR Incorrect credentialsEND\n";
-                    size_t response_len = strlen(response);
-                    size_t total = 0;
-                    while(total < response_len) {
-                        ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                        if(n <= 0) {
-                            fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                            close(client_fd);
-                            free(buffer);
-                            free(temp_buffer);
-                            return NULL;
-                        }
-                        total += n;
-                    }
-
-                    consume_request(buffer, &used, end);
-                    continue;
-                }
-                else if(auth_status == 1) {
-                    elevated = true;
-                }
-
-
-
-                //nie dzielimy na dwa osobne przypadki bo chyba nie ma sensu
-                //trzeba to też zmienić w LIST dla czytelności kodu
-                char* path_buffer = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
-
-                if(elevated) {
-                    snprintf(path_buffer, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s%s", STORAGE_PATH, path);
-                }
-                else {
-                    snprintf(path_buffer, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s/%s%s", STORAGE_PATH, username, path);
-                }
-
-                char* resolved = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
-
-
-                if(realpath(path_buffer, resolved) == NULL) {
-                    free(path_buffer);
-                    free(resolved);
-                    free(temp_buffer);
-
-                    char response[] = "ERROR no such file or directoryEND\n";
-                    size_t response_len = strlen(response);
-                    size_t total = 0;
-                    while(total < response_len) {
-                        ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                        if(n <= 0) {
-                            fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                            free(buffer);
-                            close(client_fd);
-                            return NULL;
-                        }
-                        total += n;
-                    }
-
-
-                    consume_request(buffer, &used, end);
-                    continue;
-
-                }
-
-                free(path_buffer);
-
-                char* check = (char*)malloc(sizeof(char) * DEFAULT_BUFFER_SIZE);
-                
-                if(elevated) {
-                    snprintf(check, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s", STORAGE_PATH);
-                }
-                else {
-                    snprintf(check, sizeof(char) * DEFAULT_BUFFER_SIZE, "%s/%s", STORAGE_PATH, username);
-                }
-                
-                free(temp_buffer);
-
-                if(strncasecmp(resolved, check, strlen(check)) != 0) {
-                    fprintf(stderr, "Attempting to access forbidden resource!\n");
-                    free(check);
-                    free(resolved);
-
-                    char response[] = "ERROR Attempting to access forbidden resourceEND\n";
-                    size_t response_len = strlen(response);
-                    size_t total = 0;
-                    while(total < response_len) {
-                        ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                        if(n <= 0) {
-                            fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                            close(client_fd);
-                            free(buffer);
-                            return NULL;
-                        }
-                        total += n;
-                    }
-
-                    consume_request(buffer, &used, end);
-                    continue;
-                }
-
-                free(check);
-
-                //logika otwierania pliku
-
-
+                total += n;
             }
-
-
-
-
-            ////////////////////////////////////////////////////////////////////////
-            //TEST handle
-            else if(request_type == 4) {
-                char response[] = "ACK";
-                size_t response_len = strlen(response);
-
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        free(buffer);
-                        return NULL;
-                    }
-                    total += n;
-                }
-
+            
+            free(response);
                 
-            }
-            //unknown handle
-            else {
-                //handle unknown requests
-                char response[] = "UNKNOWN REQUEST";
-                size_t response_len = strlen(response);
-
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        free(buffer);
-                        return NULL;
-                    }
-                    total += n;
-                }
-            }
-        
-
-
-            //problem jest taki że to poinno się wykonać po każdej sprawdzonej komendzie a chcemy zrobić break
-            //możnaby to wrzucić w funkcję i odpalać przed breakiem
-            consume_request(buffer, &used, end);
         }
+
+        //GET handle
+
+
+
+        //TEST HANDLE
+        else if(request_type == TEST_CON) {
+            char response[] = "0000000000000003ACK";
+            size_t response_len = strlen(response);
+
+            size_t total = 0;
+            while(total < response_len) {
+                ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                if(n <= 0) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    free(buffer);
+                    return NULL;
+                }
+                total += n;
+            }
+
+            
+        }
+
+
+        //LOGINTEST
+        else if(request_type == TEST_LOGIN) {
+            regex_t regex;
+            regcomp(&regex, "^LOGINTEST login:([^ ]+) password:([^ \r\n]+)\r?$", REG_EXTENDED);
+            regmatch_t matches[3];
+            if(regexec(&regex, buffer, 3, matches, 0) != 0) {
+                char response[] = "0000000000000017ERROR Malformed request";
+                size_t response_len = strlen(response);
+                size_t total = 0;
+                while(total < response_len) {
+                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                    if(n <= 0) {
+                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                        close(client_fd);
+                        free(buffer);
+                        regfree(&regex);
+                        return NULL;
+                    }
+                    total += n;
+                }
+                free(buffer);
+                continue;
+            }
+
+            char* username = buffer + matches[1].rm_so;
+            buffer[matches[1].rm_eo] = '\0';
+
+            char* password = buffer + matches[2].rm_so;
+            buffer[matches[2].rm_eo] = '\0';
+
+            regfree(&regex);
+
+            int auth_status = authenticate(username, password);
+            
+            if(auth_status == -1) {
+                fprintf(stderr, "Db could not be opened during authentication!\n");
+                close(client_fd);
+                free(buffer);
+                return NULL;
+            }
+            else if(auth_status == -2) {
+                fprintf(stderr, "sqlite3_prepare failed during authentication!\n");
+                close(client_fd);
+                free(buffer);
+                return NULL;
+            }
+            else if(auth_status == -3) {
+                fprintf(stderr, "sqlite3_step failed during authentication!\n");
+                close(client_fd);
+                free(buffer);
+                return NULL;
+            }
+            else if(auth_status == -4 || auth_status == -5) {
+                char response[] = "000000000000000ALOGINFALSE";
+                size_t response_len = strlen(response);
+                size_t total = 0;
+                while(total < response_len) {
+                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                    if(n <= 0) {
+                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                        close(client_fd);
+                        free(buffer);
+                        return NULL;
+                    }
+                    total += n;
+                }
+
+                free(buffer);
+                continue;
+            }
+
+
+            char response[] = "0000000000000009LOGINACK";
+            size_t response_len = strlen(response);
+            size_t total = 0;
+            while(total < response_len) {
+                ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                if(n <= 0) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    free(buffer);
+                    return NULL;
+                }
+                total += n;
+            }
+
+
+
+        }
+
+
+
+            //unknown handle
+        else {
+            //handle unknown requests
+            char response[] = "000000000000000FUNKNOWN REQUEST";
+            size_t response_len = strlen(response);
+
+            size_t total = 0;
+            while(total < response_len) {
+                ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                if(n <= 0) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    free(buffer);
+                    return NULL;
+                }
+                total += n;
+            }
+        }
+    
+        
+        free(buffer);
+
+
+
     }
 
-
-    
     close(client_fd);
-    free(buffer);
     return NULL;
-}
 
-void consume_request(char* buffer, size_t* used, char* end) {
-    size_t consumed = (end - buffer) + 4;
-    *used -= consumed;
-    memmove(buffer, buffer + consumed, *used);
-    buffer[*used] = '\0';
-}
 
+}

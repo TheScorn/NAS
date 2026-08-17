@@ -38,9 +38,12 @@ admin powinien móc przeglądać wszystkie foldery
 Przesyłanie pliku będzie dwustopniowe
 Początkowo wysyłane będą metadane w json, w nich: nazwa, rozszerzenie, długość rozszerzenia, wielkość pliku, czas ostatniej modyfikacji
 
-Póki co zakładamy odmowę ścieżek zawierających ..
-Nie chcemy wychodzenia poza folder
 
 
-Zmiana delimitera na customowy tak żeby można było łatwo przesyłać pliki
-"END\n"
+Każdy początkek wiadomości to 16 znaków tłumaczonych na liczbę hex. 
+Znając tą liczbę wiemy ile bajtów wiadomości musimy odebrać
+
+Odbieramy w pętli póki nie będzie 16 bajtów
+Odczytujemy wartość hex.
+Tworzymy bufor odpowiedniej wielkości i odbieramy póki nie przyjdzie cała wiadomość.
+Jak przyjdzie to odpowiadamy

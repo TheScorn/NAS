@@ -169,6 +169,19 @@ db_interface/fast:
 .PHONY : db_interface/fast
 
 #=============================================================================
+# Target rules for targets named helper_functions
+
+# Build rule for target.
+helper_functions: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 helper_functions
+.PHONY : helper_functions
+
+# fast build rule for target.
+helper_functions/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/helper_functions.dir/build.make CMakeFiles/helper_functions.dir/build
+.PHONY : helper_functions/fast
+
+#=============================================================================
 # Target rules for targets named sqlite
 
 # Build rule for target.
@@ -277,6 +290,30 @@ db_interface.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/db_interface.dir/build.make CMakeFiles/db_interface.dir/db_interface.c.s
 .PHONY : db_interface.c.s
 
+helper_functions.o: helper_functions.c.o
+.PHONY : helper_functions.o
+
+# target to build an object file
+helper_functions.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/helper_functions.dir/build.make CMakeFiles/helper_functions.dir/helper_functions.c.o
+.PHONY : helper_functions.c.o
+
+helper_functions.i: helper_functions.c.i
+.PHONY : helper_functions.i
+
+# target to preprocess a source file
+helper_functions.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/helper_functions.dir/build.make CMakeFiles/helper_functions.dir/helper_functions.c.i
+.PHONY : helper_functions.c.i
+
+helper_functions.s: helper_functions.c.s
+.PHONY : helper_functions.s
+
+# target to generate assembly for a file
+helper_functions.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/helper_functions.dir/build.make CMakeFiles/helper_functions.dir/helper_functions.c.s
+.PHONY : helper_functions.c.s
+
 sqlite3.o: sqlite3.c.o
 .PHONY : sqlite3.o
 
@@ -313,6 +350,7 @@ help:
 	@echo "... NAS_argument_handler"
 	@echo "... NAS_handler"
 	@echo "... db_interface"
+	@echo "... helper_functions"
 	@echo "... sqlite"
 	@echo "... NAS.o"
 	@echo "... NAS.i"
@@ -326,6 +364,9 @@ help:
 	@echo "... db_interface.o"
 	@echo "... db_interface.i"
 	@echo "... db_interface.s"
+	@echo "... helper_functions.o"
+	@echo "... helper_functions.i"
+	@echo "... helper_functions.s"
 	@echo "... sqlite3.o"
 	@echo "... sqlite3.i"
 	@echo "... sqlite3.s"

@@ -17,10 +17,13 @@ set_target_properties(NAS_argument_handler PROPERTIES PUBLIC_HEADER NAS)
 add_library(db_interface db_interface.c)
 set_target_properties(db_interface PROPERTIES PUBLIC_HEADER NAS)
 
+add_library(helper_functions helper_functions.c)
+set_target_properties(helper_functions PROPERTIES PUBLIC_HEADER NAS)
+
 add_library(sqlite STATIC sqlite3.c)
 set_target_properties(sqlite PROPERTIES PUBLIC_HEADER sqlite3)
 set_target_properties(sqlite PROPERTIES LINKER_LANGUAGE C)
 
 target_include_directories(NAS.out PUBLIC ${PROJECT_BINARY_DIR})
 
-target_link_libraries(NAS.out PUBLIC NAS_argument_handler NAS_handler db_interface sqlite)
+target_link_libraries(NAS.out PUBLIC NAS_argument_handler NAS_handler db_interface sqlite helper_functions)
