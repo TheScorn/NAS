@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     if(input_args.verbose_init) {
         printf("Listening on port: %d\n", input_args.selected_port);
     }
-
+    
 
     //sig handling
     struct sigaction sa;

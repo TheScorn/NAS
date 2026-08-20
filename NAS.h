@@ -60,6 +60,7 @@ int last_occurence(char* str, char chr);
 #define DEFAULT_PORT 54004
 #define DEFAULT_BUFFER_SIZE 104857600
 #define DEFAULT_PATH_BUFFER_SIZE 2048
+#define DEFAULT_FILE_BLOCK_SIZE 1048576
 #define DEFAULT_PREFIX_SIZE 16
 #define HELP_MESSAGE "Help message placeholder\n"
 #define STORAGE_PATH "/home/thescorn/science/mine/home_server/NAS/Storage"

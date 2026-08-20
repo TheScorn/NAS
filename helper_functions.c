@@ -20,7 +20,7 @@ int determine_length(unsigned long long* result ,char* prefix) {
     }
     else if(*end) {
         //str began with a number but has junk left over at the end
-        
+        return -3;
     }
 
 

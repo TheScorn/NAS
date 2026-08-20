@@ -9,7 +9,7 @@
 #include <regex.h>
 #include <errno.h>
 #include <dirent.h>
-
+#include <fcntl.h>
 
 void* NAS_handle(void* arg) {
 
@@ -140,8 +140,14 @@ void* NAS_handle(void* arg) {
         
         //nie trzeba raczej robić żadnego consume bo robimy recv dla konkretnej ilości znaków
 
-
+        ///////////////////////////////////////////////////////
         //LIST handle
+        ////////////
+        //TODO
+        //Zmienić przesył listy i dodać od razu do info o danym pliku czas ostatniej modyfikacji
+        //oraz wielkość tak żeby można było wyświetlić te dane bez przesyłania samego pliku
+
+
         if(request_type == LIST) {
 
             regex_t regex;
@@ -230,10 +236,7 @@ void* NAS_handle(void* arg) {
                 elevated = true;
             }
 
-            //najpierw napiszemy przypadek bez elevated (potem tego schematu można użyć w każdym innym requeście)
             
-            //uprawnienia admina
-            //TODO
             char* path_buffer = (char*)malloc(sizeof(char) * 4096);
 
             if(elevated) {
@@ -335,9 +338,23 @@ void* NAS_handle(void* arg) {
             //0 file, 1 dir, 2 symlink
             //jeśli odpowiedzią jest pojedyńczy plik to wysyłamy po prostu tą jedną nazwę
             //też korzystamy ze schematu [type][namelength][name] dla stałości
-            //type {0, 1, 2}, namelength 4 bytes in hex, name
+            //type {0, 1, 2}, size(16 x hex), last_mod(16 x hex), namelength 4 bytes in hex, name
             char* raw_response;
             if(file) {
+
+                struct stat st;
+                if(stat(resolved, &st) == -1) {
+                    //ścieżki nie ma mimo sprawdzenia wczesniej
+                    fprintf(stderr, "Path could not be opened by stat despite beeing resolved.\n");
+                    free(resolved);
+                    close(client_fd);
+                    return NULL;
+                }
+
+                unsigned long long file_size = (unsigned long long)st.st_size;
+                unsigned long long last_mod = (unsigned long long)st.st_mtime;
+
+
                 //bierzemy całą ścieżkę
                 //musimy jakoś znaleźć ostatni /
                 int last_dash = last_occurence(resolved, '/');
@@ -345,8 +362,8 @@ void* NAS_handle(void* arg) {
 
                 size_t name_length = strlen(resolved);
 
-                raw_response = (char*)malloc(sizeof(char) * (1 + 4 + name_length + 1));
-                snprintf(raw_response, 1 + 4 + name_length + 1, "0%04zX%s", name_length, resolved);
+                raw_response = (char*)malloc(sizeof(char) * (1 + 16 + 16 + 4 + name_length + 1));
+                snprintf(raw_response, 1 + 16 + 16 + 4 + name_length + 1, "0%016llX%016llX%04zX%s", file_size, last_mod,name_length ,resolved);
                 free(resolved);
                 resolved = NULL;
 
@@ -354,6 +371,8 @@ void* NAS_handle(void* arg) {
             }
             else {
                 struct dirent *entry;
+                struct stat st;
+
 
                 size_t name_length;
                 char type;
@@ -367,6 +386,15 @@ void* NAS_handle(void* arg) {
 
                 while((entry = readdir(dir)) != NULL) {
                     
+
+                    if(fstatat(dirfd(dir), entry->d_name, &st, 0) == -1) {
+                        fprintf(stderr, "Error occured on fstatat. Closing connection.\n");
+                        free(raw_response);
+                        free(resolved);
+                        close(client_fd);
+                        return NULL;
+                    }
+
                     //pomijamy . i ..
                     if(strcasecmp(entry->d_name, ".") == 0 || strcasecmp(entry->d_name, "..") == 0) {
                         continue;
@@ -388,11 +416,19 @@ void* NAS_handle(void* arg) {
                         //może na potem bo potrzeba ścieżki
                     }
 
+                    
+                    //tworzymy filesize
+                    unsigned long long file_size = (unsigned long long)st.st_size;
+
+
+                    //tworzymy last_mod
+                    unsigned long long last_mod = (unsigned long long)st.st_mtime;
+
 
                     name_length = strlen(entry->d_name);
 
-                    element = (char*)malloc(sizeof(char) * (1 + 4 + name_length + 1));
-                    snprintf(element, 1 + 4 + name_length + 1, "%c%04zX%s", type, name_length, entry->d_name);
+                    element = (char*)malloc(sizeof(char) * (1 + 16 + 16 + 4 + name_length + 1));
+                    snprintf(element, 1 + 16 + 16 + 4 + name_length + 1, "%c%016llX%016llX%04zX%s", type, file_size, last_mod ,name_length, entry->d_name);
                     
                     //raw_response = (char*)realloc(raw_response, sizeof(char) * (strlen(raw_response)));
                     
@@ -437,8 +473,223 @@ void* NAS_handle(void* arg) {
             free(response);
         }
 
-        //GET handle
 
+        /////////////////////////////////////////////////////////////////////
+        //GET handle
+        else if(request_type == GET) {
+            
+            //sprawdzamy credentiale
+            //sprawdzamy typ pliku
+            //na folderze zatrzymujemy
+            //wczytujemy plik i jego stat
+            //wysyłamy stat z prefixem
+            //wysyłamy prefix pliku
+            //streamujemy plik w blokach
+            
+            regex_t regex;
+            regcomp(&regex, "^GET ([^ ]+) login:([^ ]+) password:([^ \r\n]+)\r?$", REG_EXTENDED);
+            regmatch_t matches[4];
+            
+            if(regexec(&regex, buffer, 4, matches, 0) != 0) {
+                char response[] = "0000000000000017ERROR Malformed request";
+                size_t response_len = strlen(response);
+                size_t total = 0;
+                while(total < response_len) {
+                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                    if(n <= 0) {
+                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                        close(client_fd);
+                        free(buffer);
+                        regfree(&regex);
+                        free(buffer);
+                        return NULL;
+                    }
+                    total += n;
+                }
+                free(buffer);
+                free(buffer);
+                continue;
+            }
+
+
+            char* path = buffer + matches[1].rm_so;
+            buffer[matches[1].rm_eo] = '\0';
+            
+            char* username = buffer + matches[2].rm_so;
+            buffer[matches[2].rm_eo] = '\0';
+
+            char* password = buffer + matches[3].rm_so;
+            buffer[matches[3].rm_eo] = '\0';
+
+            regfree(&regex);
+
+            bool elevated = false;
+
+            int auth_status = authenticate(username, password);
+
+            if(auth_status == -1) {
+                fprintf(stderr, "Db could not be opened during authentication!\n");
+                close(client_fd);
+                free(buffer);
+                return NULL;
+            }
+            else if(auth_status == -2) {
+                fprintf(stderr, "sqlite3_prepare failed during authentication!\n");
+                close(client_fd);
+                free(buffer);
+                return NULL;
+            }
+            else if(auth_status == -3) {
+                fprintf(stderr, "sqlite3_step failed during authentication!\n");
+                close(client_fd);
+                free(buffer);
+                return NULL;
+            }
+            else if(auth_status == -4 || auth_status == -5) {
+                char response[] = "000000000000001BERROR Incorrect credentials";
+                size_t response_len = strlen(response);
+                size_t total = 0;
+                while(total < response_len) {
+                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                    if(n <= 0) {
+                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                        close(client_fd);
+                        free(buffer);
+                        return NULL;
+                    }
+                    total += n;
+                }
+
+                free(buffer);
+                continue;
+            }
+            else if(auth_status == 1) {
+                elevated = true;
+            }
+
+            char* path_buffer = (char*)malloc(sizeof(char) * 4096);
+
+            if(elevated) {
+                snprintf(path_buffer, sizeof(char) * 4096, "%s%s", STORAGE_PATH, path);
+            }   
+            else {
+                snprintf(path_buffer, sizeof(char) * 4096, "%s/%s%s", STORAGE_PATH, username, path);
+            } 
+            
+
+            char* resolved = (char*)malloc(sizeof(char) * 4096);
+
+            if(realpath(path_buffer, resolved) == NULL) {
+                free(path_buffer);
+                free(resolved);
+                free(buffer);
+
+                char response[] = "000000000000001FERROR No such file or directory";
+                size_t response_len = strlen(response);
+                size_t total = 0;
+                while(total < response_len) {
+                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                    if(n <= 0) {
+                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                        close(client_fd);
+                        return NULL;
+                    }
+                    total += n;
+                }
+
+                continue;
+
+            }
+
+            free(path_buffer);
+
+            char* check = (char*)malloc(sizeof(char) * 4096);
+            
+            if(elevated) {
+                snprintf(check, sizeof(char) * 4096, "%s", STORAGE_PATH);
+            }
+            else {
+                snprintf(check, sizeof(char) * 4096, "%s/%s", STORAGE_PATH, username);
+            }
+
+            free(buffer);
+
+            if(strncasecmp(resolved, check, strlen(check)) != 0) {
+                fprintf(stderr, "Attempting to access forbidden resource!\n");
+                free(check);
+                free(resolved);
+
+                char response[] = "000000000000002DERROR Attempting to access forbidden resource";
+                size_t response_len = strlen(response);
+                size_t total = 0;
+                while(total < response_len) {
+                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                    if(n <= 0) {
+                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                        close(client_fd);
+                        return NULL;
+                    }
+                    total += n;
+                }
+
+                continue;
+
+            }
+
+            free(check);
+
+            //na tym etapie wiemy że ścieżka jest poprawna i użytkownik ma prawa
+            //trzeba sprawdzić czy to folder czy plik i póki co foldery odrzucać
+            struct stat st;
+
+            if(stat(resolved, &st) == -1) {
+                //ścieżki nie ma mimo sprawdzenia wczesniej
+                fprintf(stderr, "Path could not be opened by stat despite beeing resolved.\n");
+                free(resolved);
+                close(client_fd);
+                return NULL;
+            }
+            //przesył folderów
+            else if(S_ISDIR(st.st_mode)) {
+                //chyba rozwiążemy go zwyczajnym zipem
+                //będzie prościej i chyba szybciej
+                free(resolved);
+                char response[] = "000000000000002FERROR sending directories is not yet supported.";
+                size_t response_len = strlen(response);
+                size_t total = 0;
+                while(total < response_len) {
+                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
+                    if(n <= 0) {
+                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                        close(client_fd);
+                        return NULL;
+                    }
+                    total += n;
+                }
+                continue;
+            }
+
+            //przesył pliku
+            else if(S_ISREG(st.st_mode)) {
+                //tworzymy i przesyłamy metadane w formie jsona
+                //1 nazwa (pytanie czy potrzebna bo użytkownik i tak musi ją znać przed wysłaniem requesta)
+                //lepiej wysłać bo przy przesyle folderu potem może się przydać
+                //2 typ, też trzeba by przesłać dla unifikacji działania tu i w przesyle folderów
+                //3 czas ostatniej modyfikacji
+                //4 wielkość pliku
+
+                //opakowujemy w prefix
+
+                //wysyłamy json
+
+
+                //host po odczytaniu metadanych powinien potwierdzic
+
+
+            }
+
+        }
+        
 
 
         //TEST HANDLE
