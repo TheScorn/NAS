@@ -143,6 +143,19 @@ NAS_handler/fast:
 .PHONY : NAS_handler/fast
 
 #=============================================================================
+# Target rules for targets named NAS_functions
+
+# Build rule for target.
+NAS_functions: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 NAS_functions
+.PHONY : NAS_functions
+
+# fast build rule for target.
+NAS_functions/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_functions.dir/build.make CMakeFiles/NAS_functions.dir/build
+.PHONY : NAS_functions/fast
+
+#=============================================================================
 # Target rules for targets named NAS_argument_handler
 
 # Build rule for target.
@@ -241,6 +254,30 @@ NAS_argument_handler.s: NAS_argument_handler.c.s
 NAS_argument_handler.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_argument_handler.dir/build.make CMakeFiles/NAS_argument_handler.dir/NAS_argument_handler.c.s
 .PHONY : NAS_argument_handler.c.s
+
+NAS_functions.o: NAS_functions.c.o
+.PHONY : NAS_functions.o
+
+# target to build an object file
+NAS_functions.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_functions.dir/build.make CMakeFiles/NAS_functions.dir/NAS_functions.c.o
+.PHONY : NAS_functions.c.o
+
+NAS_functions.i: NAS_functions.c.i
+.PHONY : NAS_functions.i
+
+# target to preprocess a source file
+NAS_functions.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_functions.dir/build.make CMakeFiles/NAS_functions.dir/NAS_functions.c.i
+.PHONY : NAS_functions.c.i
+
+NAS_functions.s: NAS_functions.c.s
+.PHONY : NAS_functions.s
+
+# target to generate assembly for a file
+NAS_functions.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_functions.dir/build.make CMakeFiles/NAS_functions.dir/NAS_functions.c.s
+.PHONY : NAS_functions.c.s
 
 NAS_handler.o: NAS_handler.c.o
 .PHONY : NAS_handler.o
@@ -348,6 +385,7 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... NAS.out"
 	@echo "... NAS_argument_handler"
+	@echo "... NAS_functions"
 	@echo "... NAS_handler"
 	@echo "... db_interface"
 	@echo "... helper_functions"
@@ -358,6 +396,9 @@ help:
 	@echo "... NAS_argument_handler.o"
 	@echo "... NAS_argument_handler.i"
 	@echo "... NAS_argument_handler.s"
+	@echo "... NAS_functions.o"
+	@echo "... NAS_functions.i"
+	@echo "... NAS_functions.s"
 	@echo "... NAS_handler.o"
 	@echo "... NAS_handler.i"
 	@echo "... NAS_handler.s"

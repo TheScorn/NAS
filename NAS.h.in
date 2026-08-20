@@ -55,6 +55,8 @@ char* add_prefix(char* message);
 
 int last_occurence(char* str, char chr);
 
+int get_prefix(int client_fd, unsigned long long* prefix_numerical);
+
 #define VERBOSE_INIT_DEFAULT false
 #define VERBOSE_INPUT_DEFAULT false
 #define DEFAULT_PORT 54004

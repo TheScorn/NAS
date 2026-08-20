@@ -17,51 +17,23 @@ void* NAS_handle(void* arg) {
     int client_fd = args->client_fd;
     bool verbose = args->verbose_init;
 
+
     free(args);
 
     bool run = true;
-    char* prefix;
+    unsigned long long prefix_numerical;
     size_t received;
+
+
 
     enum Request_type_en request_type = UNKNOWN;
 
     while(run) {
         //Prefix determination
         //odbieramy póki nie mamy 16 znaków
-        prefix = (char*)malloc(sizeof(char) * (DEFAULT_PREFIX_SIZE + 1));
-        received = 0;
-        while(received < DEFAULT_PREFIX_SIZE) {
-            ssize_t n = recv(client_fd, prefix + received, DEFAULT_PREFIX_SIZE - received, 0);
+        int get_prefix_status = get_prefix(client_fd, &prefix_numerical);
 
-            if(n == 0) {
-                //klient zamknął połączenie
-                free(prefix);
-                close(client_fd);
-                return NULL;
-            }
-            else if(n < 0) {
-                fprintf(stderr, "Recv error occured in prefix determination!\n");
-                free(prefix);
-                close(client_fd);
-                return NULL;
-            }
-
-            received += n;
-
-
-        }
-
-        *(prefix + DEFAULT_PREFIX_SIZE) = '\0';
-
-        //printf("prefix: %s\n", prefix);
-
-        unsigned long long prefix_numerical;
-        int conversion_status = determine_length(&prefix_numerical, prefix);
-        free(prefix);
-        //tu już sam prefix nie jest potrzebny
-        if(conversion_status != 0) {
-            //error w konwersji prefixu na wartość numeryczną
-            close(client_fd);
+        if(get_prefix_status < 0) {
             return NULL;
         }
 
@@ -675,15 +647,51 @@ void* NAS_handle(void* arg) {
                 //1 nazwa (pytanie czy potrzebna bo użytkownik i tak musi ją znać przed wysłaniem requesta)
                 //lepiej wysłać bo przy przesyle folderu potem może się przydać
                 //2 typ, też trzeba by przesłać dla unifikacji działania tu i w przesyle folderów
-                //3 czas ostatniej modyfikacji
-                //4 wielkość pliku
+                //3 czas ostatniej modyfikacji (16 x hex)
+                //4 wielkość pliku (16 x hex)
+                char type = '0'; //plik
+                
+                unsigned long long last_mod = (unsigned long long)st.st_mtime;
+                unsigned long long file_size = (unsigned long long)st.st_size;
 
+                char* message_raw = (char*)malloc(sizeof(char) * (1 + 16 + 16 + 1));
+                snprintf(message_raw, 1 + 16 + 16 + 1, "%c%016llX%016llX", type, last_mod, file_size);
+                size_t raw_message_len = strlen(message_raw);
+                
+                size_t message_len = raw_message_len + 16;
+                char* message = (char*)malloc(sizeof(char) * (raw_message_len + 16 + 1));
+                snprintf(message, message_len + 1, "%016zX%s", raw_message_len, message_raw);
                 //opakowujemy w prefix
+                free(message_raw);
+                message_raw = NULL;
+                
+                size_t total = 0;
+                while(total < message_len) {
+                    ssize_t n = send(client_fd, message + total, message_len - total, 0);
+                    if(n <= 0) {
+                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                        close(client_fd);
+                        free(message);
+                        return NULL;
+                    }
+                    total += n;
+                }
 
-                //wysyłamy json
+
+                //host po odczytaniu metadanych powinien potwierdzic za pomocą
+                //ACCEPT
+                //jeśli otrzymamy REFUSE to kończymy tą iterację i nie robimy nic więcej
+                total = 0;
 
 
-                //host po odczytaniu metadanych powinien potwierdzic
+
+
+                //otwieramy plik
+                //tworzymy prefix na bazie size
+                //wysysłamy prefix (osobno, bo plik będzie w częściach)
+                //wczytujemy część pliku
+                //wysyłamy
+                //powtarzamy póki total < sent.
 
 
             }

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libNAS_functions.a CMakeFiles/NAS_functions.dir/NAS_functions.c.o
+/usr/bin/ranlib libNAS_functions.a

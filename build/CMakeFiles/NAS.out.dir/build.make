@@ -94,6 +94,7 @@ NAS.out: CMakeFiles/NAS.out.dir/NAS.c.o
 NAS.out: CMakeFiles/NAS.out.dir/build.make
 NAS.out: libNAS_argument_handler.a
 NAS.out: libNAS_handler.a
+NAS.out: libNAS_functions.a
 NAS.out: libdb_interface.a
 NAS.out: libsqlite.a
 NAS.out: libhelper_functions.a

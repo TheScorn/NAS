@@ -11,6 +11,9 @@ add_executable(NAS.out NAS.c)
 add_library(NAS_handler NAS_handler.c)
 set_target_properties(NAS_handler PROPERTIES PUBLIC_HEADER NAS)
 
+add_library(NAS_functions NAS_functions.c)
+set_target_properties(NAS_functions PROPERTIES PUBLIC_HEADER NAS)
+
 add_library(NAS_argument_handler NAS_argument_handler.c)
 set_target_properties(NAS_argument_handler PROPERTIES PUBLIC_HEADER NAS)
 
@@ -26,4 +29,4 @@ set_target_properties(sqlite PROPERTIES LINKER_LANGUAGE C)
 
 target_include_directories(NAS.out PUBLIC ${PROJECT_BINARY_DIR})
 
-target_link_libraries(NAS.out PUBLIC NAS_argument_handler NAS_handler db_interface sqlite helper_functions)
+target_link_libraries(NAS.out PUBLIC NAS_argument_handler NAS_handler NAS_functions db_interface sqlite helper_functions)
