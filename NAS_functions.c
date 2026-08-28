@@ -52,3 +52,27 @@ int get_prefix(int client_fd, unsigned long long* prefix_numerical) {
 
     return 0;
 }
+
+/**
+ * @brief Function encapsulates sending routine
+ * 
+ * Function calculates message len, then sends it using while.
+ * Note that function never closes the client_fd socket nor does it free message.
+ * 
+ * @param message null terminated string containing prefixed message
+ * 
+ * @returns 0 if execution successful, -1 if error occured during send.
+ */
+int send_routine(int client_fd, char* message, size_t message_len) {
+
+    size_t total = 0;
+    while(total < message_len) {
+        ssize_t n = send(client_fd, message + total, message_len - total, 0);
+        if(n <= 0) {
+            return -1;
+        }
+        total += n;
+
+    }
+
+}

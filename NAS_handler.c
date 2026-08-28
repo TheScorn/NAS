@@ -127,24 +127,22 @@ void* NAS_handle(void* arg) {
             regmatch_t matches[4];
             char* temp_buffer = (char*)malloc(4096 * sizeof(char));
             memcpy(temp_buffer, buffer, prefix_numerical + 1 * sizeof(char));
+            free(buffer);
             if(regexec(&regex, temp_buffer, 4, matches, 0) != 0) {
                 char response[] = "0000000000000017ERROR Malformed request";
                 size_t response_len = strlen(response);
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        free(buffer);
-                        regfree(&regex);
-                        free(temp_buffer);
-                        return NULL;
-                    }
-                    total += n;
+                
+                int send_status = send_routine(client_fd, response, response_len);
+                if(send_status == -1) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    regfree(&regex);
+                    free(temp_buffer);
+                    return NULL;
                 }
+                
+                
                 free(temp_buffer);
-                free(buffer);
                 continue;
             }
 
@@ -167,41 +165,33 @@ void* NAS_handle(void* arg) {
                 fprintf(stderr, "Db could not be opened during authentication!\n");
                 close(client_fd);
                 free(temp_buffer);
-                free(buffer);
                 return NULL;
             }
             else if(auth_status == -2) {
                 fprintf(stderr, "sqlite3_prepare failed during authentication!\n");
                 close(client_fd);
-                free(buffer);
                 free(temp_buffer);
                 return NULL;
             }
             else if(auth_status == -3) {
                 fprintf(stderr, "sqlite3_step failed during authentication!\n");
                 close(client_fd);
-                free(buffer);
                 free(temp_buffer);
                 return NULL;
             }
             else if(auth_status == -4 || auth_status == -5) {
                 char response[] = "000000000000001BERROR Incorrect credentials";
                 size_t response_len = strlen(response);
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        free(buffer);
-                        free(temp_buffer);
-                        return NULL;
-                    }
-                    total += n;
+                
+                int send_status = send_routine(client_fd, response, response_len);
+                if(send_status == -1) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    free(temp_buffer);
+                    return NULL;
                 }
 
                 free(temp_buffer);
-                free(buffer);
                 continue;
             }
             else if(auth_status == 1) {
@@ -230,19 +220,14 @@ void* NAS_handle(void* arg) {
 
                 char response[] = "000000000000001FERROR No such file or directory";
                 size_t response_len = strlen(response);
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        free(buffer);
-                        return NULL;
-                    }
-                    total += n;
+                
+                int send_status = send_routine(client_fd, response, response_len);
+                if(send_status == -1) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    return NULL;
                 }
 
-                free(buffer);
                 continue;
 
             }
@@ -272,25 +257,21 @@ void* NAS_handle(void* arg) {
 
                 char response[] = "000000000000002DERROR Attempting to access forbidden resource";
                 size_t response_len = strlen(response);
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        free(buffer);
-                        return NULL;
-                    }
-                    total += n;
+                
+                int send_status = send_routine(client_fd, response, response_len);
+                if(send_status == -1) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    return NULL;
                 }
+                
 
-                free(buffer);
                 continue;
 
             }
 
             free(check);
-
+            
             DIR* dir = opendir(resolved);
             bool file = false;
             
@@ -426,24 +407,21 @@ void* NAS_handle(void* arg) {
             size_t response_len = raw_response_len + 16;
 
             snprintf(response, response_len + 1, "%016zX%s", raw_response_len, raw_response);
-            
             free(raw_response);
 
-            size_t total = 0;
-            while(total < response_len) {
-                ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                if(n <= 0) {
-                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                    close(client_fd);
-                    free(buffer);
-                    free(response);
-                    return NULL;
-                }
-                total += n;
+            int send_status = send_routine(client_fd, response, response_len);
+            if(send_status == -1) {
+                fprintf(stderr, "0 bytes sent. Closing connection");
+                free(response);
+                close(client_fd);
+                return NULL;
             }
 
             free(response);
         }
+
+
+
 
 
         /////////////////////////////////////////////////////////////////////
@@ -465,20 +443,16 @@ void* NAS_handle(void* arg) {
             if(regexec(&regex, buffer, 4, matches, 0) != 0) {
                 char response[] = "0000000000000017ERROR Malformed request";
                 size_t response_len = strlen(response);
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        free(buffer);
-                        regfree(&regex);
-                        free(buffer);
-                        return NULL;
-                    }
-                    total += n;
+                
+                int send_status = send_routine(client_fd, response, response_len);
+                if(send_status == -1) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    free(buffer);
+                    regfree(&regex);
+                    return NULL;
                 }
-                free(buffer);
+                
                 free(buffer);
                 continue;
             }
@@ -558,15 +532,12 @@ void* NAS_handle(void* arg) {
 
                 char response[] = "000000000000001FERROR No such file or directory";
                 size_t response_len = strlen(response);
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        return NULL;
-                    }
-                    total += n;
+                
+                int send_status = send_routine(client_fd, response, response_len);
+                if(send_status == -1) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    return NULL;
                 }
 
                 continue;
@@ -593,15 +564,12 @@ void* NAS_handle(void* arg) {
 
                 char response[] = "000000000000002DERROR Attempting to access forbidden resource";
                 size_t response_len = strlen(response);
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        return NULL;
-                    }
-                    total += n;
+                
+                int send_status = send_routine(client_fd, response, response_len);
+                if(send_status == -1) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    return NULL;
                 }
 
                 continue;
@@ -628,16 +596,14 @@ void* NAS_handle(void* arg) {
                 free(resolved);
                 char response[] = "000000000000002FERROR sending directories is not yet supported.";
                 size_t response_len = strlen(response);
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        return NULL;
-                    }
-                    total += n;
+                
+                int send_status = send_routine(client_fd, response, response_len);
+                if(send_status == -1) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    return NULL;
                 }
+                
                 continue;
             }
 
@@ -665,30 +631,119 @@ void* NAS_handle(void* arg) {
                 free(message_raw);
                 message_raw = NULL;
                 
-                size_t total = 0;
-                while(total < message_len) {
-                    ssize_t n = send(client_fd, message + total, message_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        free(message);
-                        return NULL;
-                    }
-                    total += n;
+                int send_status = send_routine(client_fd, message, message_len);
+                if(send_status == -1) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    free(message);
+                    free(resolved);
+                    return NULL;
                 }
 
+                printf("Functionality GET; METADATA sent.\n");
 
+                free(message);
                 //host po odczytaniu metadanych powinien potwierdzic za pomocą
                 //ACCEPT
                 //jeśli otrzymamy REFUSE to kończymy tą iterację i nie robimy nic więcej
-                total = 0;
+                //oba mają taką samą długość
+                buffer = (char*)malloc(sizeof(char) * (16 + 6 + 1));
+                
+                size_t total = 0;
+                while(total < 16 + 6) {
+                    ssize_t n = recv(client_fd, buffer + total, 16 + 6 - total, 0);
+                    
+                    if(n == 0) {
+                        fprintf(stderr, "Functionality GET, recv ACCEPT/REFUSE buffer. Client closed connection.\n");
+                        free(buffer);
+                        free(resolved);
+                        close(client_fd);
+                        return NULL;
+                    }
+                    else if(n < 0) {
+                        fprintf(stderr, "Functionality GET, recv ACCEPT/REFUSE buffer. recv error occured!\n");
+                        free(buffer);
+                        free(resolved);
+                        close(client_fd);
+                        return NULL;
+                    }
+
+                    total += n;
+                }
+
+                *(buffer + 16 + 6) = '\0';
+
+                
+
+                if(strcasecmp(buffer, "0000000000000006REFUSE") == 0) {
+                    //client wysłał request ale odmówił przyjecia pliku
+                    free(buffer);
+                    free(resolved);
+                    continue;
+                }
+                else if(strcasecmp(buffer, "0000000000000006ACCEPT") != 0) {
+                    free(buffer);
+                    free(resolved);
+                    fprintf(stderr, "Unexpected message from client. Closing connection.\n");
+                    close(client_fd);
+                    return NULL;
+                }
+
+                //klient zaakceptował
+                free(buffer);
+                buffer = NULL;
+
+                //wysyłamy prefix
+                char* prefix = (char*)malloc(sizeof(char) * 17);
+                snprintf(prefix, 17, "%016llX", file_size);
+
+                send_status = send_routine(client_fd, prefix, 16);
+                if(send_status == -1) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    free(prefix);
+                    free(resolved);
+                    close(client_fd);
+                    return NULL;
+                }
+                free(prefix);
+                prefix = NULL;
+
+                //otwieramy plik jako bytes
+                FILE *file = fopen(resolved, "rb");                
+                if(file == NULL) {
+                    fprintf(stderr, "File could not be opened despite beeing resolved.\n");
+                    free(resolved);
+                    close(client_fd);
+                    return NULL;
+                }
+                
+                free(resolved);
+                resolved = NULL;
+
+                unsigned char* partial_buffer = (unsigned char*)malloc(DEFAULT_FILE_BLOCK_SIZE);
+
+                size_t bytes_read;
+
+                while((bytes_read = fread(partial_buffer, 1, DEFAULT_BUFFER_SIZE, file)) > 0) {
+                    //czytamy do bufora tyle ile jest w pliku
+                    size_t bytes_sent = 0;
+
+                    while(bytes_sent < bytes_read) {
+                        ssize_t n = send(client_fd, partial_buffer + bytes_sent, bytes_read - bytes_sent, 0);
+                        if(n <= 0) {
+                            fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                            free(partial_buffer);
+                            close(client_fd);
+                            return NULL;
+                        }
+                        bytes_sent += n;
+
+                    }
 
 
+                }
 
-
-                //otwieramy plik
-                //tworzymy prefix na bazie size
-                //wysysłamy prefix (osobno, bo plik będzie w częściach)
+                fclose(file);
                 //wczytujemy część pliku
                 //wysyłamy
                 //powtarzamy póki total < sent.
@@ -705,18 +760,16 @@ void* NAS_handle(void* arg) {
             char response[] = "0000000000000003ACK";
             size_t response_len = strlen(response);
 
-            size_t total = 0;
-            while(total < response_len) {
-                ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                if(n <= 0) {
-                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                    close(client_fd);
-                    free(buffer);
-                    return NULL;
-                }
-                total += n;
+            int send_status = send_routine(client_fd, response, response_len);
+            if(send_status == -1) {
+                fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                close(client_fd);
+                free(buffer);
+                return NULL;
             }
 
+
+            free(buffer);
             
         }
 
@@ -729,18 +782,17 @@ void* NAS_handle(void* arg) {
             if(regexec(&regex, buffer, 3, matches, 0) != 0) {
                 char response[] = "0000000000000017ERROR Malformed request";
                 size_t response_len = strlen(response);
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        free(buffer);
-                        regfree(&regex);
-                        return NULL;
-                    }
-                    total += n;
+                
+                int send_status = send_routine(client_fd, response, response_len);
+                if(send_status == -1) {
+                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    free(buffer);
+                    regfree(&regex);
+                    return NULL;
                 }
+                
+
                 free(buffer);
                 continue;
             }
@@ -776,16 +828,13 @@ void* NAS_handle(void* arg) {
             else if(auth_status == -4 || auth_status == -5) {
                 char response[] = "000000000000000ALOGINFALSE";
                 size_t response_len = strlen(response);
-                size_t total = 0;
-                while(total < response_len) {
-                    ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                    if(n <= 0) {
-                        fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                        close(client_fd);
-                        free(buffer);
-                        return NULL;
-                    }
-                    total += n;
+                
+                int send_status = send_routine(client_fd, response, response_len);
+                if(send_status == -1) {
+                   fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                    close(client_fd);
+                    free(buffer);
+                    return NULL; 
                 }
 
                 free(buffer);
@@ -795,19 +844,16 @@ void* NAS_handle(void* arg) {
 
             char response[] = "0000000000000009LOGINACK";
             size_t response_len = strlen(response);
-            size_t total = 0;
-            while(total < response_len) {
-                ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                if(n <= 0) {
-                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                    close(client_fd);
-                    free(buffer);
-                    return NULL;
-                }
-                total += n;
+            
+            int send_status = send_routine(client_fd, response, response_len);
+            if(send_status == -1) {
+                fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                close(client_fd);
+                free(buffer);
+                return NULL;
             }
 
-
+            free(buffer);
 
         }
 
@@ -819,21 +865,20 @@ void* NAS_handle(void* arg) {
             char response[] = "000000000000000FUNKNOWN REQUEST";
             size_t response_len = strlen(response);
 
-            size_t total = 0;
-            while(total < response_len) {
-                ssize_t n = send(client_fd, response + total, response_len - total, 0);
-                if(n <= 0) {
-                    fprintf(stderr, "0 bytes sent. Closing connection.\n");
-                    close(client_fd);
-                    free(buffer);
-                    return NULL;
-                }
-                total += n;
+            int send_status = send_routine(client_fd, response, response_len);
+            if(send_status == -1) {
+                fprintf(stderr, "0 bytes sent. Closing connection.\n");
+                close(client_fd);
+                free(buffer);
+                return NULL;
             }
+
+            free(buffer);
+
         }
     
         
-        free(buffer);
+        
 
 
 

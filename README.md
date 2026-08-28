@@ -47,3 +47,5 @@ Odbieramy w pętli póki nie będzie 16 bajtów
 Odczytujemy wartość hex.
 Tworzymy bufor odpowiedniej wielkości i odbieramy póki nie przyjdzie cała wiadomość.
 Jak przyjdzie to odpowiadamy
+
+
