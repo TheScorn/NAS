@@ -164,6 +164,11 @@ int PUT_handle(int client_fd, char* buffer) {
 
     }
 
+    //check to dokładnie to co jest potrzebne do sprawdzenia zajętego miejsca
+    //trzeba napisać funkcję która to ogarnie
+
+
+
     free(check);
 
     struct stat st;
