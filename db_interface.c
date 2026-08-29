@@ -87,3 +87,58 @@ int authenticate(char* username, char* password) {
     }
 
 }
+
+int authenticate_size(char* username, char* password, int* mbytes_max) {
+    sqlite3 *db;
+    if(sqlite3_open(DB_PATH, &db) != 0) {
+        return -1;
+    }
+
+    sqlite3_stmt* stmt;
+
+    char select_statement[100];
+
+    snprintf(select_statement, 100, "SELECT password, access, storage FROM Users WHERE username = \"%s\";", username);
+    if(sqlite3_prepare_v2(db, select_statement, -1, &stmt, NULL) != 0) {
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return -2;
+    }
+
+    int sqlite_step = sqlite3_step(stmt);
+    if(sqlite_step == SQLITE_DONE) {
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return -4;
+    }
+
+    else if(sqlite_step != SQLITE_ROW) {
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return -3;
+    }
+
+    const unsigned char* selected_password = (const unsigned char*)sqlite3_column_text(stmt, 0);
+    
+
+    if(strcasecmp(password, selected_password) != 0) {
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return -5;
+    }
+
+    int access = sqlite3_column_int(stmt, 1);
+    
+    *mbytes_max = sqlite3_column_int(stmt, 2);
+
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+
+    if(access == 1) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+
+}

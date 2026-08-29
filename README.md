@@ -49,3 +49,33 @@ Tworzymy bufor odpowiedniej wielkości i odbieramy póki nie przyjdzie cała wia
 Jak przyjdzie to odpowiadamy
 
 
+
+
+PUT
+
+przychodzi
+{PREFIX}PUT {ścieżka do folderu} login:{login} password:{password}
+
+od razu po tym idzie
+{PREFIX}{type}{16x hex mtime}{16x hex size}
+
+Serwer wysyła ACCEPT albo REFUSE w zależności od ilości miejsca klienta
+
+przychodzi
+{PREFIX} -> sprawdzamy czy zgadza się z wysłaną wielkością pliku
+
+tworzymy plik i zapisujemy
+
+
+
+
+Podczas auth dodajemy wyciąganie wielkości przeznaczonej pamięci z db.
+
+Robimy potem normalnie auth.
+
+Jeśli nie jest elevated to przy sprawdzaniu czy ścieżka prowadzi do folderu otiweramy też root użytkownika i znajdujemy ile waży.
+
+Jeśli waga + plik przychodzący > Miejsce na serwerze
+REFUSE
+
+Inaczej ACCEPT

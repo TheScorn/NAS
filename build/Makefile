@@ -195,6 +195,19 @@ helper_functions/fast:
 .PHONY : helper_functions/fast
 
 #=============================================================================
+# Target rules for targets named PUT_handle
+
+# Build rule for target.
+PUT_handle: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 PUT_handle
+.PHONY : PUT_handle
+
+# fast build rule for target.
+PUT_handle/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PUT_handle.dir/build.make CMakeFiles/PUT_handle.dir/build
+.PHONY : PUT_handle/fast
+
+#=============================================================================
 # Target rules for targets named sqlite
 
 # Build rule for target.
@@ -303,6 +316,30 @@ NAS_handler.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_handler.dir/build.make CMakeFiles/NAS_handler.dir/NAS_handler.c.s
 .PHONY : NAS_handler.c.s
 
+PUT_handle.o: PUT_handle.c.o
+.PHONY : PUT_handle.o
+
+# target to build an object file
+PUT_handle.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PUT_handle.dir/build.make CMakeFiles/PUT_handle.dir/PUT_handle.c.o
+.PHONY : PUT_handle.c.o
+
+PUT_handle.i: PUT_handle.c.i
+.PHONY : PUT_handle.i
+
+# target to preprocess a source file
+PUT_handle.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PUT_handle.dir/build.make CMakeFiles/PUT_handle.dir/PUT_handle.c.i
+.PHONY : PUT_handle.c.i
+
+PUT_handle.s: PUT_handle.c.s
+.PHONY : PUT_handle.s
+
+# target to generate assembly for a file
+PUT_handle.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PUT_handle.dir/build.make CMakeFiles/PUT_handle.dir/PUT_handle.c.s
+.PHONY : PUT_handle.c.s
+
 db_interface.o: db_interface.c.o
 .PHONY : db_interface.o
 
@@ -387,6 +424,7 @@ help:
 	@echo "... NAS_argument_handler"
 	@echo "... NAS_functions"
 	@echo "... NAS_handler"
+	@echo "... PUT_handle"
 	@echo "... db_interface"
 	@echo "... helper_functions"
 	@echo "... sqlite"
@@ -402,6 +440,9 @@ help:
 	@echo "... NAS_handler.o"
 	@echo "... NAS_handler.i"
 	@echo "... NAS_handler.s"
+	@echo "... PUT_handle.o"
+	@echo "... PUT_handle.i"
+	@echo "... PUT_handle.s"
 	@echo "... db_interface.o"
 	@echo "... db_interface.i"
 	@echo "... db_interface.s"

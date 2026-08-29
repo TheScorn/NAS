@@ -1,0 +1,2 @@
+/usr/bin/ar qc libPUT_handle.a CMakeFiles/PUT_handle.dir/PUT_handle.c.o
+/usr/bin/ranlib libPUT_handle.a

@@ -640,7 +640,7 @@ void* NAS_handle(void* arg) {
                     return NULL;
                 }
 
-                printf("Functionality GET; METADATA sent.\n");
+                
 
                 free(message);
                 //host po odczytaniu metadanych powinien potwierdzic za pomocą
@@ -753,6 +753,14 @@ void* NAS_handle(void* arg) {
 
         }
         
+
+        /////////////////////////////////////////////////////////////
+        //PUT handle
+        else if(request_type == PUT) {
+            
+        }
+
+
 
 
         //TEST HANDLE

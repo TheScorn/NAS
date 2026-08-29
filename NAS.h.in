@@ -49,6 +49,8 @@ int test_con();
 
 int authenticate(char* username, char* password);
 
+int authenticate_size(char* username, char* password, int* mbytes_max);
+
 int determine_length(unsigned long long* result ,char* prefix);
 
 char* add_prefix(char* message);
