@@ -79,3 +79,6 @@ Jeśli waga + plik przychodzący > Miejsce na serwerze
 REFUSE
 
 Inaczej ACCEPT
+
+
+TODO sprawdzanie wielkości folderu

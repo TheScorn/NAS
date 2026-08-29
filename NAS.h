@@ -39,6 +39,8 @@ int handle_arguments(int argc, char** argv, struct input_args_struct* args);
 
 int verify_int(char* int_str);
 
+unsigned long long dir_size(char* dirpath);
+
 #ifdef __cplusplus
 }
 #endif
@@ -60,6 +62,8 @@ int last_occurence(char* str, char chr);
 int get_prefix(int client_fd, unsigned long long* prefix_numerical);
 
 int send_routine(int client_fd, char* message, size_t message_len);
+
+
 
 #define VERBOSE_INIT_DEFAULT false
 #define VERBOSE_INPUT_DEFAULT false
