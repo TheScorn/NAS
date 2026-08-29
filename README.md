@@ -57,7 +57,7 @@ przychodzi
 {PREFIX}PUT {ścieżka do folderu} login:{login} password:{password}
 
 od razu po tym idzie
-{PREFIX}{type}{16x hex mtime}{16x hex size}
+{PREFIX}{type}{16x hex mtime}{16x hex size}{4x hex namelength}{name}
 
 Serwer wysyła ACCEPT albo REFUSE w zależności od ilości miejsca klienta
 
@@ -81,4 +81,6 @@ REFUSE
 Inaczej ACCEPT
 
 
-TODO sprawdzanie wielkości folderu
+Czy na pewno chcemy zapisywać miejsce użytkownika w MB????
+Do testów mało wygodne, ale jeśli serwer będzie działał na poważnie to pewnie pamięć będzie liczona w GB.
+

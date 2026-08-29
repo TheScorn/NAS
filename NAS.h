@@ -63,7 +63,9 @@ int get_prefix(int client_fd, unsigned long long* prefix_numerical);
 
 int send_routine(int client_fd, char* message, size_t message_len);
 
+int send_REFUSE(int sockD);
 
+int send_ACCEPT(int sockD);
 
 #define VERBOSE_INIT_DEFAULT false
 #define VERBOSE_INPUT_DEFAULT false

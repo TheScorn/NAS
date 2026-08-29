@@ -167,6 +167,12 @@ int PUT_handle(int client_fd, char* buffer) {
     //check to dokładnie to co jest potrzebne do sprawdzenia zajętego miejsca
     //trzeba napisać funkcję która to ogarnie
 
+    unsigned long long current_space_taken;
+    if(!elevated) {
+        //current space in bytes
+        current_space_taken = dir_size(check);
+    }
+    
 
 
     free(check);
@@ -194,14 +200,15 @@ int PUT_handle(int client_fd, char* buffer) {
         return 7;
     }
     else if(S_ISDIR(st.st_mode)) {
-        //wiemy że ścieżka jest u użytkownika i prowadzi do folderu
-        //trzeba odebrać metadane i zebrać z nich info
-
+        
+        free(resolved);
+        resolved = NULL;
         //otworzyć potem folder użytkownika i porównać wielkości.
 
         unsigned long long prefix_numerical;
         int get_prefix_status = get_prefix(client_fd, &prefix_numerical);
         if(get_prefix_status < 0) {
+            
             return -8;
         }
         if(prefix_numerical != 33) {
@@ -244,9 +251,12 @@ int PUT_handle(int client_fd, char* buffer) {
         char file_type;
         unsigned long long mtime;
         unsigned long long file_size;
+        
 
         char* mtime_buffer = (char*)malloc(sizeof(char) * 17);
         char* file_size_buffer = (char*)malloc(sizeof(char) * 17);
+        char* file_name = (char*)malloc(sizeof(char) * (prefix_numerical - 16 - 16 - 1 + 1));
+
 
         if(*metadata_buffer == '0') {
             file_type = 0;
@@ -262,19 +272,27 @@ int PUT_handle(int client_fd, char* buffer) {
 
         snprintf(file_size_buffer, 17, "%s", metadata_buffer + 17);
 
+        snprintf(file_name, sizeof(char) * (prefix_numerical - 16 - 16 - 1 + 1), "%s", metadata_buffer + 1 + 16 + 16);
+
         free(metadata_buffer);
 
         int conversion_status = determine_length(&mtime, mtime_buffer);
         free(mtime_buffer);
         if(conversion_status == -1) {
+            free(file_name);
+            free(file_size_buffer);
             fprintf(stderr, "Function PUT_handle; Determine mtime; Mtime was not a number.\n");
             return -13;
         }
         else if(conversion_status == -2) {
+            free(file_name);
+            free(file_size_buffer);
             fprintf(stderr, "Function PUT_handle; Determine mtime; Value converted does not fit in unsigned long long.\n");
             return -13;
         }
         else if(conversion_status == -3) {
+            free(file_name);
+            free(file_size_buffer);
             fprintf(stderr, "Function PUT_handle; Determine mtime; Mtime contained garbage values.\n");
             return -13;
         }
@@ -282,28 +300,45 @@ int PUT_handle(int client_fd, char* buffer) {
         conversion_status = determine_length(file_size, file_size_buffer);
         free(file_size_buffer);
         if(conversion_status == -1) {
+            free(file_name);
             fprintf(stderr, "Function PUT_handle; Determine file size; File size was not a number.\n");
             return -14;
         }
         else if(conversion_status == -2) {
+            free(file_name);
             fprintf(stderr, "Function PUT_handle; Determine file size; Value converted does not fit in unsigned long long.\n");
             return -14;
         }
         else if(conversion_status == -3) {
+            free(file_name);
             fprintf(stderr, "Function PUT_handle; Determine file size; File size contained garbage values.\n");
             return -14;
         }
 
 
-        //mamy wielkość max dla użytownika w MB
-        //mamy przewidywaną wielkość w B
+        //mamy wielkość pliku "file_size" w bajtach
+        //mamy obecne zajęte miejsce "current_space_taken" w bajtach
+        //mamy pojemność dla użytkownika "mbytes_max" w megabajtach
 
-        //jeśli nie jest elevated to trzeba otworzyć folder root i sprawdzić ile się mieści
-
-        if(!elevated) {
-            //otwieramy DEFAULT_STORAGE + username i sprawdzamy wielkość folderu.
-            
+        if(!elevated && (file_size + current_space_taken > *mbytes_max * 1024 * 1024)) {
+            //jeśli trzeba wysłać refuse to i tak wszystkiego się pozbywamy i tylko
+            //robimy continue, ewentualnie return NULL
+            free(file_name);
+            if(send_REFUSE(client_fd) == -1) {
+                return -15;
+            }
+            return 15;
         }
+
+        if(send_ACCEPT(client_fd) == -1) {
+            free(file_name);
+            return -15;
+        }
+
+        //Przyjmujemy znowu prefix, sprawdzamy czy jest równy file_size.
+        //jeśli nie to zamykamy połączenie
+        //jeśli tak to otwieramy w dir nowy plik "file_name"
+        //przyjmujemy po 1MB i zapisujemy od razu tam.
 
 
 

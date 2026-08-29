@@ -76,3 +76,38 @@ int send_routine(int client_fd, char* message, size_t message_len) {
     }
 
 }
+
+int send_ACCEPT(int sockD) {
+    char accept_message[] = "0000000000000006ACCEPT";
+    size_t message_len = strlen(accept_message);
+
+    size_t total = 0;
+    while(total < message_len) {
+        ssize_t n = send(sockD, accept_message + total, message_len - total, 0);
+        if(n <= 0) {
+            fprintf(stderr, "Error occured during send in ACCEPT.\n");
+            return -1;
+        }
+        total += n;
+    }
+    return 0;
+
+}
+
+int send_REFUSE(int sockD) {
+    char refuse_message[] = "0000000000000006REFUSE";
+    size_t message_len = strlen(refuse_message);
+
+    size_t total = 0;
+    while(total < message_len) {
+        ssize_t n = send(sockD, refuse_message + total, message_len - total, 0);
+        if(n <= 0) {
+            fprintf(stderr, "Error occured during send in REFUSE.\n");
+            return -1;
+        }
+        total += n;
+    }
+    return 0;
+
+
+}
