@@ -67,6 +67,8 @@ int send_REFUSE(int sockD);
 
 int send_ACCEPT(int sockD);
 
+int PUT_handle(int client_fd, char* buffer);
+
 #define VERBOSE_INIT_DEFAULT false
 #define VERBOSE_INPUT_DEFAULT false
 #define DEFAULT_PORT 54004

@@ -757,7 +757,10 @@ void* NAS_handle(void* arg) {
         /////////////////////////////////////////////////////////////
         //PUT handle
         else if(request_type == PUT) {
-            
+            int put_status = PUT_handle(client_fd, buffer);
+            if(put_status < 0) {
+                return NULL;
+            }
         }
 
 

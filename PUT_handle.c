@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 /**
  * @brief Function for handling PUT requests
@@ -201,24 +203,26 @@ int PUT_handle(int client_fd, char* buffer) {
     }
     else if(S_ISDIR(st.st_mode)) {
         
-        free(resolved);
-        resolved = NULL;
+        
         //otworzyć potem folder użytkownika i porównać wielkości.
 
         unsigned long long prefix_numerical;
         int get_prefix_status = get_prefix(client_fd, &prefix_numerical);
         if(get_prefix_status < 0) {
-            
+            close(client_fd);
+            free(resolved);
             return -8;
         }
         if(prefix_numerical != 33) {
             fprintf(stderr, "Function PUT_handle; prefix determination; Expected 33 bytes in metadata message, prefix stated: %lld\n", prefix_numerical);
+            free(resolved);
             close(client_fd);
             return -9;
         }
         else if(prefix_numerical > SIZE_MAX) {
             fprintf(stderr, "Function PUT_handle; prefix determination; Size of message larger than system size_t. Closing connection\n");
             close(client_fd);
+            free(resolved);
             return -10;
         }
 
@@ -231,12 +235,14 @@ int PUT_handle(int client_fd, char* buffer) {
             if(n == 0) {
                 printf("Function PUT_handle; metadata recv; Client closed connection\n");
                 free(metadata_buffer);
+                free(resolved);
                 close(client_fd);
                 return -11;
             }
             else if(n < 0) {
                 fprintf(stderr, "Function PUT_handle; metadata recv; Recv error\n");
                 free(metadata_buffer);
+                free(resolved);
                 close(client_fd);
                 return -12;
             }
@@ -281,36 +287,42 @@ int PUT_handle(int client_fd, char* buffer) {
         if(conversion_status == -1) {
             free(file_name);
             free(file_size_buffer);
+            free(resolved);
             fprintf(stderr, "Function PUT_handle; Determine mtime; Mtime was not a number.\n");
             return -13;
         }
         else if(conversion_status == -2) {
             free(file_name);
             free(file_size_buffer);
+            free(resolved);
             fprintf(stderr, "Function PUT_handle; Determine mtime; Value converted does not fit in unsigned long long.\n");
             return -13;
         }
         else if(conversion_status == -3) {
             free(file_name);
             free(file_size_buffer);
+            free(resolved);
             fprintf(stderr, "Function PUT_handle; Determine mtime; Mtime contained garbage values.\n");
             return -13;
         }
 
-        conversion_status = determine_length(file_size, file_size_buffer);
+        conversion_status = determine_length(&file_size, file_size_buffer);
         free(file_size_buffer);
         if(conversion_status == -1) {
             free(file_name);
+            free(resolved);
             fprintf(stderr, "Function PUT_handle; Determine file size; File size was not a number.\n");
             return -14;
         }
         else if(conversion_status == -2) {
             free(file_name);
+            free(resolved);
             fprintf(stderr, "Function PUT_handle; Determine file size; Value converted does not fit in unsigned long long.\n");
             return -14;
         }
         else if(conversion_status == -3) {
             free(file_name);
+            free(resolved);
             fprintf(stderr, "Function PUT_handle; Determine file size; File size contained garbage values.\n");
             return -14;
         }
@@ -324,6 +336,7 @@ int PUT_handle(int client_fd, char* buffer) {
             //jeśli trzeba wysłać refuse to i tak wszystkiego się pozbywamy i tylko
             //robimy continue, ewentualnie return NULL
             free(file_name);
+            free(resolved);
             if(send_REFUSE(client_fd) == -1) {
                 return -15;
             }
@@ -332,6 +345,7 @@ int PUT_handle(int client_fd, char* buffer) {
 
         if(send_ACCEPT(client_fd) == -1) {
             free(file_name);
+            free(resolved);
             return -15;
         }
 
@@ -340,7 +354,84 @@ int PUT_handle(int client_fd, char* buffer) {
         //jeśli tak to otwieramy w dir nowy plik "file_name"
         //przyjmujemy po 1MB i zapisujemy od razu tam.
 
+        prefix_numerical = 0;
+        get_prefix_status = get_prefix(client_fd, &prefix_numerical);
+        if(get_prefix_status < 0) {
+            free(file_name);
+            free(resolved);
+            return -8;
+        }
+        if(prefix_numerical != 33) {
+            fprintf(stderr, "Function PUT_handle; prefix determination; Expected 33 bytes in metadata message, prefix stated: %lld\n", prefix_numerical);
+            close(client_fd);
+            free(file_name);
+            free(resolved);
+            return -9;
+        }
+        else if(prefix_numerical > SIZE_MAX) {
+            fprintf(stderr, "Function PUT_handle; prefix determination; Size of message larger than system size_t. Closing connection\n");
+            close(client_fd);
+            free(file_name);
+            free(resolved);
+            return -10;
+        }
 
+
+        if(prefix_numerical != file_size) {
+            fprintf(stderr, "Function PUT_handle; compare prefix and file_size Failed. Closing connection.\n");
+            free(file_name);
+            free(resolved);
+            return -16;
+        }
+
+
+
+        //bufor do odbioru pliku
+        char* buffer = (char*)malloc(DEFAULT_FILE_BLOCK_SIZE);
+
+
+        recieved = 0;
+
+        char* file_path = (char*)malloc(sizeof(char) * (strlen(resolved) + 1 + strlen(file_name) + 1));
+        snprintf(file_path, sizeof(char) * (strlen(resolved) + 1 + strlen(file_name) + 1), "%s/%s", resolved, file_name);
+
+        free(file_name);
+        free(resolved);
+
+        FILE* f = fopen(file_path, "wb");
+
+        while(recieved < prefix_numerical) {
+            unsigned long long remaining = prefix_numerical - recieved;
+
+            size_t to_recieve = remaining < DEFAULT_FILE_BLOCK_SIZE ? remaining : DEFAULT_FILE_BLOCK_SIZE;
+
+            ssize_t n = recv(client_fd, buffer, to_recieve, 0);
+
+            if(n < 0) {
+                fprintf(stderr, "Function PUT_handle; Error occured during file recv\n");
+                fclose(f);
+                free(buffer);
+                free(file_path);
+                return -17;
+            }
+            else if(n == 0) {
+                fprintf(stderr, "Function PUT_handle; File recv; Client closed connection.\n");
+                fclose(f);
+                free(buffer);
+                free(file_path);
+                return -18;
+            }
+
+            fwrite(buffer, 1, n, f);
+
+            recieved += n;
+
+        }
+
+        fclose(f);
+        free(buffer);
+        free(file_path);
+        return 0;
 
     }
 
