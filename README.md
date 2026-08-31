@@ -57,7 +57,7 @@ przychodzi
 {PREFIX}PUT {ścieżka do folderu} login:{login} password:{password}
 
 od razu po tym idzie
-{PREFIX}{type}{16x hex mtime}{16x hex size}{4x hex namelength}{name}
+{PREFIX}{type}{16x hex mtime}{16x hex size}{name}
 
 Serwer wysyła ACCEPT albo REFUSE w zależności od ilości miejsca klienta
 

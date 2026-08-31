@@ -111,3 +111,16 @@ int send_REFUSE(int sockD) {
 
 
 }
+
+int send_ACK(int client_fd) {
+    char ack_message[] = "0000000000000003ACK";
+    size_t response_len = strlen(ack_message);
+
+    int send_status = send_routine(client_fd, ack_message, response_len);
+    if(send_status == -1) {
+        fprintf(stderr, "Function send_ACK; 0 bytes sent. Closing connection.\n");
+        close(client_fd);
+        return -1;
+    }
+    return 0;
+}

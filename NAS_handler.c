@@ -734,6 +734,7 @@ void* NAS_handle(void* arg) {
                             fprintf(stderr, "0 bytes sent. Closing connection.\n");
                             free(partial_buffer);
                             close(client_fd);
+                            fclose(file);
                             return NULL;
                         }
                         bytes_sent += n;
@@ -747,7 +748,7 @@ void* NAS_handle(void* arg) {
                 //wczytujemy część pliku
                 //wysyłamy
                 //powtarzamy póki total < sent.
-
+                free(partial_buffer);
 
             }
 

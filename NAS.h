@@ -67,6 +67,8 @@ int send_REFUSE(int sockD);
 
 int send_ACCEPT(int sockD);
 
+int send_ACK(int client_fd);
+
 int PUT_handle(int client_fd, char* buffer);
 
 #define VERBOSE_INIT_DEFAULT false

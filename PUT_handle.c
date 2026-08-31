@@ -226,6 +226,18 @@ int PUT_handle(int client_fd, char* buffer) {
             return -10;
         }
 
+        //trzeba wysłać coś żeby klient miał okazję odebrać errory
+        //ACK
+
+        if(send_ACK(client_fd) == -1){
+            close(client_fd);
+            free(resolved);
+            return -10;
+        }
+
+
+
+
         char* metadata_buffer = (char*)malloc(prefix_numerical + (1 * sizeof(char)));
 
         size_t recieved = 0;
