@@ -46,6 +46,11 @@ int PUT_handle(int client_fd, char* buffer) {
 
     }
 
+    //instrukcje preprocessora, można wstawić printf tylko jeśli symbol jest zdefiniowany
+    #ifdef DEBUG
+    printf("DEBUG mode 0:Function PUT_handle; regex values found.\n");
+    #endif
+
 
     char* path = buffer + matches[1].rm_so;
     buffer[matches[1].rm_eo] = '\0';
@@ -63,6 +68,9 @@ int PUT_handle(int client_fd, char* buffer) {
     int* mbytes_max;
 
     int auth_status = authenticate_size(username, password, mbytes_max);
+    #ifdef DEBUG
+    printf("DEBUG mode 0.5: Function PUT_handle; authenticate_size returned with code: %d, mbytes_max: %d\n", auth_status, *mbytes_max);
+    #endif
     if(auth_status == -1) {
         fprintf(stderr, "Function PUT_handle; authenticate_size; Db could not be opened during authentication!\n");
         close(client_fd);
@@ -100,6 +108,11 @@ int PUT_handle(int client_fd, char* buffer) {
         elevated = true;
     }
 
+    #ifdef DEBUG
+    printf("DEBUG mode 1:Function PUT_handle; Authentication successful, elvated: %d\n", (int)elevated);
+    #endif
+
+
     char* path_buffer = (char*)malloc(sizeof(char) * 4096);
 
     if(elevated) {
@@ -132,9 +145,9 @@ int PUT_handle(int client_fd, char* buffer) {
 
     free(path_buffer);
 
-    
-
-
+    #ifdef DEBUG
+    printf("DEBUG mode 2:Function PUT_handle; path resolved: %s\n", resolved);
+    #endif
 
     char* check = (char*)malloc(sizeof(char) * 4096);
 
@@ -166,15 +179,22 @@ int PUT_handle(int client_fd, char* buffer) {
 
     }
 
+    #ifdef DEBUG
+    printf("DEBUG mode 3:Function PUT_handle; path check passed.\n");
+    #endif
+
     //check to dokładnie to co jest potrzebne do sprawdzenia zajętego miejsca
     //trzeba napisać funkcję która to ogarnie
 
-    unsigned long long current_space_taken;
+    unsigned long long current_space_taken = 0;
     if(!elevated) {
         //current space in bytes
         current_space_taken = dir_size(check);
     }
     
+    #ifdef DEBUG
+    printf("DEBUG mode 4:Function PUT_handle; current_space_checked: %lld\n", current_space_taken);
+    #endif
 
 
     free(check);
@@ -188,6 +208,10 @@ int PUT_handle(int client_fd, char* buffer) {
         return -6;
     }
     else if(S_ISREG(st.st_mode)) {
+        #ifdef DEBUG
+        printf("DEBUG mode 5:Function PUT_handle; ISREG entered.\n");
+        #endif
+
         free(resolved);
         char response[] = "000000000000002DERROR attempting to save file in another file"; //45 znaków + 0
         size_t response_len = strlen(response);
@@ -199,25 +223,40 @@ int PUT_handle(int client_fd, char* buffer) {
             return -7;
         }
 
+        #ifdef DEBUG
+        printf("DEBUG mode 6:Function PUT_handle; function end.\n");
+        #endif
         return 7;
     }
     else if(S_ISDIR(st.st_mode)) {
         
+        #ifdef DEBUG
+        printf("DEBUG mode 5: Function PUT_handle; ISDIR entered.\n");
+        #endif
         
-        //otworzyć potem folder użytkownika i porównać wielkości.
+        
+        #ifdef DEBUG
+        printf("DEBUG mode 5.1:Function PUT_handle; checkpoint before send_ACK.\n");
+        #endif
+        //wysyłamy ACK żeby klient spodziewał się wiadomości i mógł odebrać errory
+        if(send_ACK(client_fd) == -1){
+            close(client_fd);
+            free(resolved);
+            return -10;
+        }
+        #ifdef DEBUG
+        printf("DEBUG mode 5.2:Function PUT_handle; ACK sent.\n");
+        #endif
 
         unsigned long long prefix_numerical;
         int get_prefix_status = get_prefix(client_fd, &prefix_numerical);
+        #ifdef DEBUG
+        printf("DEBUG mode 5.3: Function PUT_handle; get_prefix returned with prefix numerical: %lld\n", prefix_numerical);
+        #endif
         if(get_prefix_status < 0) {
             close(client_fd);
             free(resolved);
             return -8;
-        }
-        if(prefix_numerical != 33) {
-            fprintf(stderr, "Function PUT_handle; prefix determination; Expected 33 bytes in metadata message, prefix stated: %lld\n", prefix_numerical);
-            free(resolved);
-            close(client_fd);
-            return -9;
         }
         else if(prefix_numerical > SIZE_MAX) {
             fprintf(stderr, "Function PUT_handle; prefix determination; Size of message larger than system size_t. Closing connection\n");
@@ -226,23 +265,13 @@ int PUT_handle(int client_fd, char* buffer) {
             return -10;
         }
 
-        //trzeba wysłać coś żeby klient miał okazję odebrać errory
-        //ACK
-
-        if(send_ACK(client_fd) == -1){
-            close(client_fd);
-            free(resolved);
-            return -10;
-        }
-
-
 
 
         char* metadata_buffer = (char*)malloc(prefix_numerical + (1 * sizeof(char)));
 
         size_t recieved = 0;
         while(recieved < prefix_numerical) {
-            ssize_t n = recv(client_fd, buffer + recieved, prefix_numerical - recieved, 0);
+            ssize_t n = recv(client_fd, metadata_buffer + recieved, prefix_numerical - recieved, 0);
 
             if(n == 0) {
                 printf("Function PUT_handle; metadata recv; Client closed connection\n");
@@ -265,6 +294,11 @@ int PUT_handle(int client_fd, char* buffer) {
         }
 
         *(metadata_buffer + prefix_numerical) = '\0';
+
+        
+        #ifdef DEBUG
+        printf("DEBUG mode 6:Function PUT_handle; metadata recieved: %s\n", metadata_buffer);
+        #endif
 
         char file_type;
         unsigned long long mtime;
@@ -293,6 +327,10 @@ int PUT_handle(int client_fd, char* buffer) {
         snprintf(file_name, sizeof(char) * (prefix_numerical - 16 - 16 - 1 + 1), "%s", metadata_buffer + 1 + 16 + 16);
 
         free(metadata_buffer);
+
+        #ifdef DEBUG
+        printf("Function PUT_handle; metadata split. mtime: %s, size: %s, file_name: %s\n", mtime_buffer, file_size_buffer, file_name);
+        #endif
 
         int conversion_status = determine_length(&mtime, mtime_buffer);
         free(mtime_buffer);
@@ -361,6 +399,10 @@ int PUT_handle(int client_fd, char* buffer) {
             return -15;
         }
 
+        #ifdef DEBUG
+        printf("DEBUG mode 7:Function PUT_handle; ACCEPT sent.\n");
+        #endif
+
         //Przyjmujemy znowu prefix, sprawdzamy czy jest równy file_size.
         //jeśli nie to zamykamy połączenie
         //jeśli tak to otwieramy w dir nowy plik "file_name"
@@ -372,13 +414,6 @@ int PUT_handle(int client_fd, char* buffer) {
             free(file_name);
             free(resolved);
             return -8;
-        }
-        if(prefix_numerical != 33) {
-            fprintf(stderr, "Function PUT_handle; prefix determination; Expected 33 bytes in metadata message, prefix stated: %lld\n", prefix_numerical);
-            close(client_fd);
-            free(file_name);
-            free(resolved);
-            return -9;
         }
         else if(prefix_numerical > SIZE_MAX) {
             fprintf(stderr, "Function PUT_handle; prefix determination; Size of message larger than system size_t. Closing connection\n");
@@ -396,7 +431,9 @@ int PUT_handle(int client_fd, char* buffer) {
             return -16;
         }
 
-
+        #ifdef DEBUG
+        printf("DEBUG mode 8:Function PUT_handle; prefix recieved and compared to file_size.\n");
+        #endif
 
         //bufor do odbioru pliku
         char* buffer = (char*)malloc(DEFAULT_FILE_BLOCK_SIZE);
@@ -443,6 +480,9 @@ int PUT_handle(int client_fd, char* buffer) {
         fclose(f);
         free(buffer);
         free(file_path);
+        #ifdef DEBUG
+        printf("DEBUG mode function end: Function PUT_handle; f closed, buffer freed, file_path freed, returning 0.\n");
+        #endif
         return 0;
 
     }
