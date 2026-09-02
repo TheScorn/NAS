@@ -485,6 +485,14 @@ int PUT_handle(int client_fd, char* buffer) {
 
         }
 
+        if(send_ACK(client_fd) == -1) {
+            close(client_fd);
+            free(file_path);
+            free(buffer);
+            return -19;
+        }
+
+
         fclose(f);
         free(buffer);
         free(file_path);
