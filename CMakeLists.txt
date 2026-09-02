@@ -41,4 +41,5 @@ option(ENABLE_DEBUG "Enable DEBUG mode" OFF)
 #korzystanie z opcji żeby dodać definicję typu #define DEBUG
 if(ENABLE_DEBUG)
     target_compile_definitions(PUT_handle PRIVATE DEBUG)
+    target_compile_definitions(db_interface PRIVATE DEBUG)
 endif()

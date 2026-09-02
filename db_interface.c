@@ -94,16 +94,30 @@ int authenticate_size(char* username, char* password, int* mbytes_max) {
         return -1;
     }
 
+    #ifdef DEBUG
+    printf("DEBUG mode 0: Function authenticate_size; sqlite3_opened.\n");
+    #endif
+
     sqlite3_stmt* stmt;
 
     char select_statement[100];
 
     snprintf(select_statement, 100, "SELECT password, access, storage FROM Users WHERE username = \"%s\";", username);
+    
+    #ifdef DEBUG
+    printf("DEBUG mode 1: Function authenticate_size; select_statement created: %s\n", select_statement);
+    #endif
+
     if(sqlite3_prepare_v2(db, select_statement, -1, &stmt, NULL) != 0) {
         sqlite3_finalize(stmt);
         sqlite3_close(db);
         return -2;
     }
+
+    #ifdef DEBUG
+    printf("DEBUG mode 2: Function authenticate_size; statement prepared.\n");
+    #endif
+
 
     int sqlite_step = sqlite3_step(stmt);
     if(sqlite_step == SQLITE_DONE) {
@@ -112,11 +126,18 @@ int authenticate_size(char* username, char* password, int* mbytes_max) {
         return -4;
     }
 
+   
+
+
     else if(sqlite_step != SQLITE_ROW) {
         sqlite3_finalize(stmt);
         sqlite3_close(db);
         return -3;
     }
+
+    #ifdef DEBUG
+    printf("DEBUG mode 3: Function authenticate_size; step done.\n");
+    #endif
 
     const unsigned char* selected_password = (const unsigned char*)sqlite3_column_text(stmt, 0);
     
@@ -127,17 +148,37 @@ int authenticate_size(char* username, char* password, int* mbytes_max) {
         return -5;
     }
 
+    #ifdef DEBUG
+    printf("DEBUG mode 4: Function authenticate_size; password compared.\n");
+    #endif
+
+
     int access = sqlite3_column_int(stmt, 1);
     
+    #ifdef DEBUG
+    printf("DEBUG mode 5: Function authenticate_size; access asigned.\n");
+    #endif
+
+    //tu się wywala na mordę
     *mbytes_max = sqlite3_column_int(stmt, 2);
+
+    #ifdef DEBUG
+    printf("DEBUG mode 6: Function authenticate_size; mbytes asigned.\n");
+    #endif
 
     sqlite3_finalize(stmt);
     sqlite3_close(db);
 
     if(access == 1) {
+        #ifdef DEBUG
+        printf("DEBUG mode function end: Function; authenticate_size; returning 1.\n");
+        #endif
         return 1;
     }
     else {
+        #ifdef DEBUG
+        printf("DEBUG mode function end: Function; authenticate_size; returning 0.\n");
+        #endif
         return 0;
     }
 

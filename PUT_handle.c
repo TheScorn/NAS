@@ -61,15 +61,23 @@ int PUT_handle(int client_fd, char* buffer) {
     char* password = buffer + matches[3].rm_so;
     buffer[matches[3].rm_eo] = '\0';
 
+    #ifdef DEBUG
+    printf("DEBUG mode 0.1: Function PUT_handle; Values split on buffer. path: %s, username: %s, password: %s.\n", path, username, password);
+    #endif
+
     regfree(&regex);
+
+    #ifdef DEBUG
+    printf("DEBUG mode 0.2: Function PUT_handle; regex freed.\n");
+    #endif
 
     bool elevated = false;
 
-    int* mbytes_max;
+    int mbytes_max;
 
-    int auth_status = authenticate_size(username, password, mbytes_max);
+    int auth_status = authenticate_size(username, password, &mbytes_max);
     #ifdef DEBUG
-    printf("DEBUG mode 0.5: Function PUT_handle; authenticate_size returned with code: %d, mbytes_max: %d\n", auth_status, *mbytes_max);
+    printf("DEBUG mode 0.5: Function PUT_handle; authenticate_size returned with code: %d, mbytes_max: %d\n", auth_status, mbytes_max);
     #endif
     if(auth_status == -1) {
         fprintf(stderr, "Function PUT_handle; authenticate_size; Db could not be opened during authentication!\n");
@@ -382,7 +390,7 @@ int PUT_handle(int client_fd, char* buffer) {
         //mamy obecne zajęte miejsce "current_space_taken" w bajtach
         //mamy pojemność dla użytkownika "mbytes_max" w megabajtach
 
-        if(!elevated && (file_size + current_space_taken > *mbytes_max * 1024 * 1024)) {
+        if(!elevated && (file_size + current_space_taken > mbytes_max * 1024 * 1024)) {
             //jeśli trzeba wysłać refuse to i tak wszystkiego się pozbywamy i tylko
             //robimy continue, ewentualnie return NULL
             free(file_name);

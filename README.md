@@ -84,3 +84,13 @@ Inaczej ACCEPT
 Czy na pewno chcemy zapisywać miejsce użytkownika w MB????
 Do testów mało wygodne, ale jeśli serwer będzie działał na poważnie to pewnie pamięć będzie liczona w GB.
 
+
+
+TODO: zmiana mtime po zapisaniu pliku.
+
+BUG: Po użyciu list, użycie put powoduje segfault po 0 DEBUGU.
+Można użyć dwa razy put
+
+Po użyciu get użycie put powoduje segfault
+
+używanie ls i get naprzemiennie nie powoduje błędów. problem jest prawdopodbnie gdzieś w PUT
