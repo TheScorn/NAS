@@ -86,7 +86,7 @@ int DEL_handle(int client_fd, char* buffer) {
 
     int auth_status = authenticate(username, password);
     #ifdef DEBUG
-    printf("DEBUG mode 0.5: Function DEL_handle;Function authenticate returned with code: %d, mbytes_max: %d\n", auth_status, mbytes_max);
+    printf("DEBUG mode 0.5: Function DEL_handle;Function authenticate returned with code: %d\n", auth_status);
     #endif
     if(auth_status == -1) {
         fprintf(stderr, "Function DEL_handle; authenticate_size; Db could not be opened during authentication!\n");
@@ -321,10 +321,20 @@ int DEL_handle(int client_fd, char* buffer) {
             }
 
             //tutaj logika dla rekursywnego usuwania.
-            
+            //bo mamy flagę
+            if(remove_all(resolved) < 0) {
+                fprintf(stderr, "Function DEL_handle; error occured in remove_all func.\n");
+                close(client_fd);
+                free(resolved);
+                return -12;
+            } 
 
-
-
+            free(resolved);
+            if(send_ACK(client_fd) == -1) {
+                close(client_fd);
+                return -13;
+            }
+            return 0;
         }
 
 

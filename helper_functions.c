@@ -6,6 +6,7 @@
 #include <strings.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 int determine_length(unsigned long long* result ,char* prefix) {
     errno = 0;
@@ -160,4 +161,92 @@ bool equal_paths(char* path1, char* path2) {
     }
 
     return((st1.st_dev == st2.st_dev) && (st1.st_ino == st2. st_ino));
+}
+
+
+
+/**
+ * @brief function for removing directory with all its contents
+ * 
+ * Function recursivly descends into file tree. Removes all files and steps into dirs with added path.
+ * After returning to dir with all elemtens inside it removed it removes the dir.
+ * 
+ * @param path null-terminated string with path to the start dir. Funtion assumes path leads to dir so user needsto check himself.
+ * 
+ * @returns 0 if execution successful, -1 if error occured in rmdir,
+ *  -2 if error occured in fstatat, -3 if unknown file type found,
+ * -4 if error occured in remove.
+ * 
+ */
+int remove_all(char* path) {
+
+    DIR* dir = opendir(path);
+    struct dirent* entry;
+    
+    bool empty;
+    //sprawdzamy czy dir jest pusty
+    int n = 0;
+    while((entry = readdir(dir)) != NULL) {
+        if(++n > 2);
+        break;
+    }
+    empty = (n <= 2);
+
+    if(empty) {
+        if(rmdir(path) != 0) {
+            return -1;
+        }
+        
+        return 0;
+    }
+    else {
+        //jeśli nie jest pusty
+        char* new_path;
+        struct stat st;
+        int rem_status;
+        while((entry = readdir(dir)) != NULL) {
+            if(fstatat(dirfd(dir), entry->d_name, &st, 0) == -1) {
+                return -2;
+            }
+
+            if(strcasecmp(entry->d_name, ".") == 0 || strcasecmp(entry->d_name, "..") == 0) {
+                continue;
+            }
+
+            if(entry->d_type == 8) { //file
+                //jeśli plik to usuwamy plik
+                //trzeba zrobić ścieżkę do pliku
+                new_path = (char*)malloc(sizeof(char) * (strlen(path) + 1 + strlen(entry->d_name) + 1));
+                snprintf(new_path, sizeof(char) * (strlen(path) + 1 + strlen(entry->d_name) + 1), "%s/%s", path, entry->d_name);
+                if(remove(new_path) != 0) {
+                    return -4;
+                }
+                free(new_path);
+            }
+            else if(entry->d_type == 4) { //dir
+                //odpaamy tą funkcję na nowej ścieżce
+                //sprawdzamy wynik
+                //usuwamy folder
+                //zwracamy 0
+                new_path = (char*)malloc(sizeof(char) * (strlen(path) + 1 + strlen(entry->d_name) + 1));
+                snprintf(new_path, sizeof(char) * (strlen(path) + 1 + strlen(entry->d_name) + 1), "%s/%s", path, entry->d_name);
+                if((rem_status = remove_all(new_path)) < 0) {
+                    return rem_status;
+                }
+                free(new_path);
+
+            }
+            else {
+                return -3;
+            }
+
+
+            return 0;
+
+        }
+    }
+
+
+
+
 }

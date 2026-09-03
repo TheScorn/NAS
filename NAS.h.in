@@ -43,6 +43,8 @@ unsigned long long dir_size(char* dirpath);
 
 bool equal_paths(char* path1, char* path2);
 
+int remove_all(char* path);
+
 #ifdef __cplusplus
 }
 #endif
