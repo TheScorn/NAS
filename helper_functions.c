@@ -136,3 +136,28 @@ unsigned long long dir_size(char* dirpath) {
     dir_size_aux(dirpath, &total);
     return total;
 }
+
+/**
+ * @brief Function for checking path equality
+ * 
+ * @param path1 null terminated string
+ * 
+ * @param path2 null terminated string
+ * 
+ * @returns true if strings point to the same file or dir, false if not
+ * 
+ */
+bool equal_paths(char* path1, char* path2) {
+    struct stat st1;
+    struct stat st2;
+
+    if(stat(path1, &st1) != 0) {
+        return false;
+    }
+
+    if(stat(path2, &st2) != 0) {
+        return false;
+    }
+
+    return((st1.st_dev == st2.st_dev) && (st1.st_ino == st2. st_ino));
+}

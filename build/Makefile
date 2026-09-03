@@ -208,6 +208,19 @@ PUT_handle/fast:
 .PHONY : PUT_handle/fast
 
 #=============================================================================
+# Target rules for targets named DEL_handle
+
+# Build rule for target.
+DEL_handle: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 DEL_handle
+.PHONY : DEL_handle
+
+# fast build rule for target.
+DEL_handle/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DEL_handle.dir/build.make CMakeFiles/DEL_handle.dir/build
+.PHONY : DEL_handle/fast
+
+#=============================================================================
 # Target rules for targets named sqlite
 
 # Build rule for target.
@@ -219,6 +232,30 @@ sqlite: cmake_check_build_system
 sqlite/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/sqlite.dir/build.make CMakeFiles/sqlite.dir/build
 .PHONY : sqlite/fast
+
+DEL_handle.o: DEL_handle.c.o
+.PHONY : DEL_handle.o
+
+# target to build an object file
+DEL_handle.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DEL_handle.dir/build.make CMakeFiles/DEL_handle.dir/DEL_handle.c.o
+.PHONY : DEL_handle.c.o
+
+DEL_handle.i: DEL_handle.c.i
+.PHONY : DEL_handle.i
+
+# target to preprocess a source file
+DEL_handle.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DEL_handle.dir/build.make CMakeFiles/DEL_handle.dir/DEL_handle.c.i
+.PHONY : DEL_handle.c.i
+
+DEL_handle.s: DEL_handle.c.s
+.PHONY : DEL_handle.s
+
+# target to generate assembly for a file
+DEL_handle.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/DEL_handle.dir/build.make CMakeFiles/DEL_handle.dir/DEL_handle.c.s
+.PHONY : DEL_handle.c.s
 
 NAS.o: NAS.c.o
 .PHONY : NAS.o
@@ -420,6 +457,7 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... DEL_handle"
 	@echo "... NAS.out"
 	@echo "... NAS_argument_handler"
 	@echo "... NAS_functions"
@@ -428,6 +466,9 @@ help:
 	@echo "... db_interface"
 	@echo "... helper_functions"
 	@echo "... sqlite"
+	@echo "... DEL_handle.o"
+	@echo "... DEL_handle.i"
+	@echo "... DEL_handle.s"
 	@echo "... NAS.o"
 	@echo "... NAS.i"
 	@echo "... NAS.s"

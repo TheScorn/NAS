@@ -28,13 +28,16 @@ set_target_properties(helper_functions PROPERTIES PUBLIC_HEADER NAS)
 add_library(PUT_handle PUT_handle.c)
 set_target_properties(PUT_handle PROPERTIES PUBLIC_HEADER NAS)
 
+add_library(DEL_handle DEL_handle.c)
+set_target_properties(DEL_handle PROPERTIES PUBLIC_HEADER NAS)
+
 add_library(sqlite STATIC sqlite3.c)
 set_target_properties(sqlite PROPERTIES PUBLIC_HEADER sqlite3)
 set_target_properties(sqlite PROPERTIES LINKER_LANGUAGE C)
 
 target_include_directories(NAS.out PUBLIC ${PROJECT_BINARY_DIR})
 
-target_link_libraries(NAS.out PUBLIC NAS_argument_handler NAS_handler NAS_functions db_interface sqlite helper_functions PUT_handle)
+target_link_libraries(NAS.out PUBLIC NAS_argument_handler NAS_handler NAS_functions db_interface sqlite helper_functions PUT_handle DEL_handle)
 
 option(ENABLE_DEBUG "Enable DEBUG mode" OFF)
 
@@ -42,4 +45,5 @@ option(ENABLE_DEBUG "Enable DEBUG mode" OFF)
 if(ENABLE_DEBUG)
     target_compile_definitions(PUT_handle PRIVATE DEBUG)
     target_compile_definitions(db_interface PRIVATE DEBUG)
+    target_compile_definitions(DEL_handle PRIVATE DEBUG)
 endif()

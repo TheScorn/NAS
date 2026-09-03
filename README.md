@@ -88,9 +88,4 @@ Do testów mało wygodne, ale jeśli serwer będzie działał na poważnie to pe
 
 TODO: zmiana mtime po zapisaniu pliku.
 
-BUG: Po użyciu list, użycie put powoduje segfault po 0 DEBUGU.
-Można użyć dwa razy put
-
-Po użyciu get użycie put powoduje segfault
-
-używanie ls i get naprzemiennie nie powoduje błędów. problem jest prawdopodbnie gdzieś w PUT
+TODO: admin nie powinien móc usuwać folderów użytkowników za pomocą rm

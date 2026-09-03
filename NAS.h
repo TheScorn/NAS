@@ -41,6 +41,8 @@ int verify_int(char* int_str);
 
 unsigned long long dir_size(char* dirpath);
 
+bool equal_paths(char* path1, char* path2);
+
 #ifdef __cplusplus
 }
 #endif
@@ -70,6 +72,8 @@ int send_ACCEPT(int sockD);
 int send_ACK(int client_fd);
 
 int PUT_handle(int client_fd, char* buffer);
+
+int DEL_handle(int client_fd, char* buffer);
 
 #define VERBOSE_INIT_DEFAULT false
 #define VERBOSE_INPUT_DEFAULT false

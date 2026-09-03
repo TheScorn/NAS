@@ -1,0 +1,2 @@
+/usr/bin/ar qc libDEL_handle.a CMakeFiles/DEL_handle.dir/DEL_handle.c.o
+/usr/bin/ranlib libDEL_handle.a
