@@ -486,14 +486,18 @@ int PUT_handle(int client_fd, char* buffer) {
 
         }
 
+        fclose(f);
+
         //zmieniamy mtime
         struct timespec times[2] = {
             { .tv_sec = 0, .tv_nsec = UTIME_OMIT},
             { .tv_sec = (time_t)mtime, .tv_nsec = 0}
         };
 
-        if(utimensat(AT_FDCWD, file_path, times, 0) == -1) {
-            fprintf(stderr, "Function PUT_handle; error in utimesat.n");
+
+        //Nie działa z jakiegoś powodu
+        if(utimensat(AT_FDCWD, file_path, times, 0) != 0) {
+            fprintf(stderr, "Function PUT_handle; error in utimesat.\n");
             free(file_path);
             free(buffer);
             close(client_fd);
@@ -508,7 +512,7 @@ int PUT_handle(int client_fd, char* buffer) {
         }
 
 
-        fclose(f);
+       
         free(buffer);
         free(file_path);
         #ifdef DEBUG
