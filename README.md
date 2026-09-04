@@ -86,6 +86,4 @@ Do testów mało wygodne, ale jeśli serwer będzie działał na poważnie to pe
 
 
 
-TODO: zmiana mtime po zapisaniu pliku.
-
 TODO: admin nie powinien móc usuwać folderów użytkowników za pomocą rm

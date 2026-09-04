@@ -98,7 +98,7 @@ void* NAS_handle(void* arg) {
             request_type = PUT;
         }
 
-        if(strncasecmp(buffer, "DELETE ", 7) == 0) {
+        if(strncasecmp(buffer, "DEL ", 4) == 0) {
             request_type = DELETE;
         }
 
@@ -764,7 +764,12 @@ void* NAS_handle(void* arg) {
             }
         }
 
-
+        else if(request_type == DELETE) {
+            int delete_status = DEL_handle(client_fd, buffer);
+            if(delete_status < 0) {
+                return NULL;
+            }
+        }
 
 
         //TEST HANDLE

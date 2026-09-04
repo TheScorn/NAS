@@ -33,6 +33,10 @@ int DEL_handle(int client_fd, char* buffer) {
     regcomp(&regex, "^DEL ([^ ]+) ([01]) login:([^ ]+) password:([^ \r\n]+\r?$)", REG_EXTENDED);
     regmatch_t matches[5];
 
+    #ifdef DEBUG
+    printf("DEBUG mode 0: Function DEL_handle; buffer: %s\n", buffer);
+    #endif
+
     if(regexec(&regex, buffer, 5, matches, 0) != 0) {
         char response[] = "0000000000000017ERROR Malformed request";
         size_t response_len = strlen(response);
@@ -61,10 +65,10 @@ int DEL_handle(int client_fd, char* buffer) {
     //w zależności od tej flagi działamy potem na usuwaniu
     char recursive_flag = buffer[matches[2].rm_so];
 
-    char* username = buffer + matches[2].rm_so;
+    char* username = buffer + matches[3].rm_so;
     buffer[matches[3].rm_eo] = '\0';
 
-    char* password = buffer + matches[3].rm_so;
+    char* password = buffer + matches[4].rm_so;
     buffer[matches[4].rm_eo] = '\0';
 
     #ifdef DEBUG

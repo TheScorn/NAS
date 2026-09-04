@@ -495,7 +495,6 @@ int PUT_handle(int client_fd, char* buffer) {
         };
 
 
-        //Nie działa z jakiegoś powodu
         if(utimensat(AT_FDCWD, file_path, times, 0) != 0) {
             fprintf(stderr, "Function PUT_handle; error in utimesat.\n");
             free(file_path);
