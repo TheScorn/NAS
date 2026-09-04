@@ -1,0 +1,2 @@
+/usr/bin/ar qc libMKDIR_handle.a CMakeFiles/MKDIR_handle.dir/MKDIR_handle.c.o
+/usr/bin/ranlib libMKDIR_handle.a

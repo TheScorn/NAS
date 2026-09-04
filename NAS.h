@@ -28,7 +28,7 @@ struct user_info_struct {
 
 
 enum Request_type_en {
-    UNKNOWN, LIST, GET, PUT, DELETE, TEST_CON, TEST_LOGIN
+    UNKNOWN, LIST, GET, PUT, DELETE, MKDIR, TEST_CON, TEST_LOGIN
 };
 
 #ifdef __cplusplus
@@ -76,6 +76,8 @@ int send_ACK(int client_fd);
 int PUT_handle(int client_fd, char* buffer);
 
 int DEL_handle(int client_fd, char* buffer);
+
+int MKDIR_handle(int client_fd, char* buffer);
 
 #define VERBOSE_INIT_DEFAULT false
 #define VERBOSE_INPUT_DEFAULT false

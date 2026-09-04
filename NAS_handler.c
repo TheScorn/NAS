@@ -98,8 +98,12 @@ void* NAS_handle(void* arg) {
             request_type = PUT;
         }
 
-        if(strncasecmp(buffer, "DEL ", 4) == 0) {
+        else if(strncasecmp(buffer, "DEL ", 4) == 0) {
             request_type = DELETE;
+        }
+
+        else if(strncasecmp(buffer, "MKDIR", 5) == 0) {
+            request_type = MKDIR;
         }
 
         else if(strncasecmp(buffer, "TEST", 4) == 0) {
@@ -771,6 +775,12 @@ void* NAS_handle(void* arg) {
             }
         }
 
+        else if(request_type == MKDIR) {
+            int mkdir_status = MKDIR_handle(client_fd, buffer);
+            if(mkdir_status < 0) {
+                return NULL;
+            }
+        }
 
         //TEST HANDLE
         else if(request_type == TEST_CON) {

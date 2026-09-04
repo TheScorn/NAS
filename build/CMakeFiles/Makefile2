@@ -71,6 +71,7 @@ all: CMakeFiles/db_interface.dir/all
 all: CMakeFiles/helper_functions.dir/all
 all: CMakeFiles/PUT_handle.dir/all
 all: CMakeFiles/DEL_handle.dir/all
+all: CMakeFiles/MKDIR_handle.dir/all
 all: CMakeFiles/sqlite.dir/all
 .PHONY : all
 
@@ -87,6 +88,7 @@ clean: CMakeFiles/db_interface.dir/clean
 clean: CMakeFiles/helper_functions.dir/clean
 clean: CMakeFiles/PUT_handle.dir/clean
 clean: CMakeFiles/DEL_handle.dir/clean
+clean: CMakeFiles/MKDIR_handle.dir/clean
 clean: CMakeFiles/sqlite.dir/clean
 .PHONY : clean
 
@@ -101,15 +103,16 @@ CMakeFiles/NAS.out.dir/all: CMakeFiles/db_interface.dir/all
 CMakeFiles/NAS.out.dir/all: CMakeFiles/helper_functions.dir/all
 CMakeFiles/NAS.out.dir/all: CMakeFiles/PUT_handle.dir/all
 CMakeFiles/NAS.out.dir/all: CMakeFiles/DEL_handle.dir/all
+CMakeFiles/NAS.out.dir/all: CMakeFiles/MKDIR_handle.dir/all
 CMakeFiles/NAS.out.dir/all: CMakeFiles/sqlite.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS.out.dir/build.make CMakeFiles/NAS.out.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS.out.dir/build.make CMakeFiles/NAS.out.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=3,4 "Built target NAS.out"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=5,6 "Built target NAS.out"
 .PHONY : CMakeFiles/NAS.out.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/NAS.out.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/thescorn/science/mine/home_server/NAS/build/CMakeFiles 18
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/thescorn/science/mine/home_server/NAS/build/CMakeFiles 20
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/NAS.out.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/thescorn/science/mine/home_server/NAS/build/CMakeFiles 0
 .PHONY : CMakeFiles/NAS.out.dir/rule
@@ -130,7 +133,7 @@ CMakeFiles/NAS.out.dir/clean:
 CMakeFiles/NAS_handler.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_handler.dir/build.make CMakeFiles/NAS_handler.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_handler.dir/build.make CMakeFiles/NAS_handler.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=9,10 "Built target NAS_handler"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=11,12 "Built target NAS_handler"
 .PHONY : CMakeFiles/NAS_handler.dir/all
 
 # Build rule for subdir invocation for target.
@@ -156,7 +159,7 @@ CMakeFiles/NAS_handler.dir/clean:
 CMakeFiles/NAS_functions.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_functions.dir/build.make CMakeFiles/NAS_functions.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_functions.dir/build.make CMakeFiles/NAS_functions.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=7,8 "Built target NAS_functions"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=9,10 "Built target NAS_functions"
 .PHONY : CMakeFiles/NAS_functions.dir/all
 
 # Build rule for subdir invocation for target.
@@ -182,7 +185,7 @@ CMakeFiles/NAS_functions.dir/clean:
 CMakeFiles/NAS_argument_handler.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_argument_handler.dir/build.make CMakeFiles/NAS_argument_handler.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/NAS_argument_handler.dir/build.make CMakeFiles/NAS_argument_handler.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=5,6 "Built target NAS_argument_handler"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=7,8 "Built target NAS_argument_handler"
 .PHONY : CMakeFiles/NAS_argument_handler.dir/all
 
 # Build rule for subdir invocation for target.
@@ -208,7 +211,7 @@ CMakeFiles/NAS_argument_handler.dir/clean:
 CMakeFiles/db_interface.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/db_interface.dir/build.make CMakeFiles/db_interface.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/db_interface.dir/build.make CMakeFiles/db_interface.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=13,14 "Built target db_interface"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=15,16 "Built target db_interface"
 .PHONY : CMakeFiles/db_interface.dir/all
 
 # Build rule for subdir invocation for target.
@@ -234,7 +237,7 @@ CMakeFiles/db_interface.dir/clean:
 CMakeFiles/helper_functions.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/helper_functions.dir/build.make CMakeFiles/helper_functions.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/helper_functions.dir/build.make CMakeFiles/helper_functions.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=15,16 "Built target helper_functions"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=17,18 "Built target helper_functions"
 .PHONY : CMakeFiles/helper_functions.dir/all
 
 # Build rule for subdir invocation for target.
@@ -260,7 +263,7 @@ CMakeFiles/helper_functions.dir/clean:
 CMakeFiles/PUT_handle.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/PUT_handle.dir/build.make CMakeFiles/PUT_handle.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/PUT_handle.dir/build.make CMakeFiles/PUT_handle.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=11,12 "Built target PUT_handle"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=13,14 "Built target PUT_handle"
 .PHONY : CMakeFiles/PUT_handle.dir/all
 
 # Build rule for subdir invocation for target.
@@ -306,13 +309,39 @@ CMakeFiles/DEL_handle.dir/clean:
 .PHONY : CMakeFiles/DEL_handle.dir/clean
 
 #=============================================================================
+# Target rules for target CMakeFiles/MKDIR_handle.dir
+
+# All Build rule for target.
+CMakeFiles/MKDIR_handle.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/MKDIR_handle.dir/build.make CMakeFiles/MKDIR_handle.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/MKDIR_handle.dir/build.make CMakeFiles/MKDIR_handle.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=3,4 "Built target MKDIR_handle"
+.PHONY : CMakeFiles/MKDIR_handle.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/MKDIR_handle.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/thescorn/science/mine/home_server/NAS/build/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/MKDIR_handle.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/thescorn/science/mine/home_server/NAS/build/CMakeFiles 0
+.PHONY : CMakeFiles/MKDIR_handle.dir/rule
+
+# Convenience name for target.
+MKDIR_handle: CMakeFiles/MKDIR_handle.dir/rule
+.PHONY : MKDIR_handle
+
+# clean rule for target.
+CMakeFiles/MKDIR_handle.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/MKDIR_handle.dir/build.make CMakeFiles/MKDIR_handle.dir/clean
+.PHONY : CMakeFiles/MKDIR_handle.dir/clean
+
+#=============================================================================
 # Target rules for target CMakeFiles/sqlite.dir
 
 # All Build rule for target.
 CMakeFiles/sqlite.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/sqlite.dir/build.make CMakeFiles/sqlite.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/sqlite.dir/build.make CMakeFiles/sqlite.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=17,18 "Built target sqlite"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/thescorn/science/mine/home_server/NAS/build/CMakeFiles --progress-num=19,20 "Built target sqlite"
 .PHONY : CMakeFiles/sqlite.dir/all
 
 # Build rule for subdir invocation for target.

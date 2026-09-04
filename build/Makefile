@@ -221,6 +221,19 @@ DEL_handle/fast:
 .PHONY : DEL_handle/fast
 
 #=============================================================================
+# Target rules for targets named MKDIR_handle
+
+# Build rule for target.
+MKDIR_handle: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 MKDIR_handle
+.PHONY : MKDIR_handle
+
+# fast build rule for target.
+MKDIR_handle/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/MKDIR_handle.dir/build.make CMakeFiles/MKDIR_handle.dir/build
+.PHONY : MKDIR_handle/fast
+
+#=============================================================================
 # Target rules for targets named sqlite
 
 # Build rule for target.
@@ -256,6 +269,30 @@ DEL_handle.s: DEL_handle.c.s
 DEL_handle.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/DEL_handle.dir/build.make CMakeFiles/DEL_handle.dir/DEL_handle.c.s
 .PHONY : DEL_handle.c.s
+
+MKDIR_handle.o: MKDIR_handle.c.o
+.PHONY : MKDIR_handle.o
+
+# target to build an object file
+MKDIR_handle.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/MKDIR_handle.dir/build.make CMakeFiles/MKDIR_handle.dir/MKDIR_handle.c.o
+.PHONY : MKDIR_handle.c.o
+
+MKDIR_handle.i: MKDIR_handle.c.i
+.PHONY : MKDIR_handle.i
+
+# target to preprocess a source file
+MKDIR_handle.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/MKDIR_handle.dir/build.make CMakeFiles/MKDIR_handle.dir/MKDIR_handle.c.i
+.PHONY : MKDIR_handle.c.i
+
+MKDIR_handle.s: MKDIR_handle.c.s
+.PHONY : MKDIR_handle.s
+
+# target to generate assembly for a file
+MKDIR_handle.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/MKDIR_handle.dir/build.make CMakeFiles/MKDIR_handle.dir/MKDIR_handle.c.s
+.PHONY : MKDIR_handle.c.s
 
 NAS.o: NAS.c.o
 .PHONY : NAS.o
@@ -458,6 +495,7 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... DEL_handle"
+	@echo "... MKDIR_handle"
 	@echo "... NAS.out"
 	@echo "... NAS_argument_handler"
 	@echo "... NAS_functions"
@@ -469,6 +507,9 @@ help:
 	@echo "... DEL_handle.o"
 	@echo "... DEL_handle.i"
 	@echo "... DEL_handle.s"
+	@echo "... MKDIR_handle.o"
+	@echo "... MKDIR_handle.i"
+	@echo "... MKDIR_handle.s"
 	@echo "... NAS.o"
 	@echo "... NAS.i"
 	@echo "... NAS.s"
