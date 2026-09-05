@@ -87,3 +87,6 @@ Do testów mało wygodne, ale jeśli serwer będzie działał na poważnie to pe
 
 
 TODO: admin nie powinien móc usuwać folderów użytkowników za pomocą rm
+TODO: trzeba zmenić sposób sprawdzania ścieżki dla MKDIR
+trzeba wyciągnać ścieżkę przed / i zrobić check -> Potem na całości użyć mkdir. Trzeba sprawdzać czy folder nie istnieje już zeby go nie nadpisać. 
+TODO: Sprawdzanie czy plik już istnieje.

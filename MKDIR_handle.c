@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <errno.h>
 
 /**
  * @brief Function for handling MKDIR requests
@@ -130,14 +131,44 @@ int MKDIR_handle(int client_fd, char* buffer) {
         snprintf(path_buffer, sizeof(char) * 4096, "%s/%s%s", STORAGE_PATH, username, path);
     }
 
+    #ifdef DEBUG
+    printf("DEBUG mode 1.5: Function MKDIR_handle; path_buffer created: %s\n", path_buffer);
+    #endif
+
+    //dotąd jest dobrze, resolved może się psuć
+
+    //dzielimy ścieżkę na nazwę folderu i tą do resoved
+    int index = last_occurence(path_buffer, '/');
+    // /admin/test 11   potrzeba (4 + 1)
+    // 0123456
+    char* path_to_dir = (char*)malloc(sizeof(char) * (index + 1));
+    char* dirname = (char*)malloc(sizeof(char) * (strlen(path_buffer) - index));
+
+    snprintf(path_to_dir, sizeof(char) * (index + 1), "%s", path_buffer);
+    snprintf(dirname, sizeof(char) * (strlen(path_buffer) - index), "%s", path_buffer + index + 1);
+
+    free(path_buffer);
+    path_buffer = NULL;
+
+    #ifdef DEBUG
+    printf("DEBUG mode 1.6: Function MKDIR_handle; path_buffer freed, path: %s, dirname: %s\n", path, dirname);
+    #endif
+
+
     char* resolved = (char*)malloc(sizeof(char) * 4096);
 
-    if(realpath(path_buffer, resolved) == NULL) {
-        free(path_buffer);
+    if(realpath(path_to_dir, resolved) == NULL) {
+        free(path_to_dir);
+        free(dirname);
         free(resolved);
         free(buffer);
 
-        char response[] = "000000000000001FERROR No such directory";
+        #ifdef DEBUG
+        printf("DEBUG mode error No such file or dir: Function MKDIR_handle; realpath points to NULL.\n");
+        #endif
+
+
+        char response[] = "0000000000000017ERROR No such directory";
         size_t response_len = strlen(response);
 
         int send_status = send_routine(client_fd, response, response_len);
@@ -147,14 +178,20 @@ int MKDIR_handle(int client_fd, char* buffer) {
             return -4;
         }
 
+        #ifdef DEBUG
+        printf("DEBUG mode error no such file or dir: Function MKDIR_handle; ERROR sent, returning 4.\n");
+        #endif
+
         return 4;
 
     }
 
-    free(path_buffer);
+    free(path_to_dir);
+    path_to_dir = NULL;
+
 
     #ifdef DEBUG
-    printf("DEBUG mode 2:Function PUT_handle; path resolved: %s\n", resolved);
+    printf("DEBUG mode 2:Function PUT_handle;path_to_dir freed, path resolved: %s\n", resolved);
     #endif
 
     char* check = (char*)malloc(sizeof(char) * 4096);
@@ -172,6 +209,7 @@ int MKDIR_handle(int client_fd, char* buffer) {
         fprintf(stderr, "Attempting to access forbidden resource!\n");
         free(check);
         free(resolved);
+        free(dirname);
 
         char response[] = "000000000000002DERROR Attempting to access forbidden resource";
         size_t response_len = strlen(response);
@@ -191,14 +229,50 @@ int MKDIR_handle(int client_fd, char* buffer) {
     printf("DEBUG mode 3:Function MKDIR_handle; path check passed, check freed.\n");
     #endif
 
-    if(mkdir(resolved, 0666) != 0) {
-        fprintf(stderr, "Function MKDIR_handle; error in mkdir.\n");
-        free(resolved);
-        close(client_fd);
-        return -6;
-    }
+    //mkdir samo sprawdza czy folder już istnieje
+    //trzeba tylko obsłużyć ten error
+
+    //tutaj trzeba stworzyć zowu całość
+    char* mkdir_path = (char*)malloc(sizeof(char) * (strlen(resolved) + 1 + strlen(dirname) + 1));
+    snprintf(mkdir_path, sizeof(char) * (strlen(resolved) + 1 + strlen(dirname) + 1), "%s/%s", resolved, dirname);
 
     free(resolved);
+    free(dirname);
+    #ifdef DEBUG
+    printf("DEBUG mode 4: Function MKDIR_handle; resolved and dirname freed, mkdir_path: %s\n", mkdir_path);
+    #endif
+
+    int mkdir_status = mkdir(mkdir_path, 0777);
+    free(mkdir_path);
+    if(mkdir_status != 0) {
+        //obsługujemy tylko kilka errorów, póki co jeden z zajętą ścieżką.
+        if(errno == EEXIST) {
+            //wysyłamy wiad o powtórzonej ścieżce
+            char response[] = "0000000000000032ERROR cannot create directory, file already exists";
+            size_t response_len = strlen(response);
+
+            int send_status = send_routine(client_fd, response, response_len);
+            if(send_status == -1) {
+                fprintf(stderr, "Function MKDIR_handle; Forbidden resource error send; 0 bytes sent. Closing connection.\n");
+                close(client_fd);
+                return -6;
+            }
+
+        }
+        else {
+            fprintf(stderr, "Function MKDIR_handle; unhandled error occured in mkdir: %s. Closing connection.\n", strerror(errno));
+            close(client_fd);
+            return -7;
+        }
+    }
+
+
+
+    if(send_ACK(client_fd) == -1) {
+        close(client_fd);
+        return -8;
+    }
+    
     return 0;
 
 

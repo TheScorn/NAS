@@ -768,6 +768,7 @@ void* NAS_handle(void* arg) {
             }
         }
 
+        //DELETE handle
         else if(request_type == DELETE) {
             int delete_status = DEL_handle(client_fd, buffer);
             if(delete_status < 0) {
@@ -775,6 +776,7 @@ void* NAS_handle(void* arg) {
             }
         }
 
+        //MKDIR handle
         else if(request_type == MKDIR) {
             int mkdir_status = MKDIR_handle(client_fd, buffer);
             if(mkdir_status < 0) {
